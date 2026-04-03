@@ -46,6 +46,7 @@ async function migrate() {
       table.decimal('latitude', 10, 7);
       table.decimal('longitude', 10, 7);
       table.string('address');
+      table.jsonb('address_details').defaultTo('{}');
       table.jsonb('opening_hours').defaultTo('{}');
       table.decimal('rating', 3, 2).defaultTo(0);
       table.integer('total_reviews').defaultTo(0);
@@ -311,6 +312,7 @@ async function migrate() {
     await db.raw(`UPDATE products SET unit = 'piece' WHERE unit IS NULL`);
     await db.raw(`UPDATE products SET min_quantity = 1 WHERE min_quantity IS NULL`);
     await db.raw(`UPDATE products SET step = 1 WHERE step IS NULL`);
+    await addColIfMissing('suppliers', 'address_details', (t) => t.jsonb('address_details').defaultTo('{}'));
 
     logger.info('✅ Migration terminée avec succès!');
   } catch (error) {

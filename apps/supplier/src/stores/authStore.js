@@ -58,7 +58,14 @@ const useAuthStore = create((set) => ({
     try {
       const { data } = await api.get('/suppliers/me');
       set({ supplier: data.data });
+      return data.data;
     } catch {}
+  },
+
+  updateSupplierProfile: async (profileData) => {
+    const { data } = await api.put('/suppliers/me', profileData);
+    set({ supplier: data.data });
+    return data.data;
   },
 
   logout: () => {
