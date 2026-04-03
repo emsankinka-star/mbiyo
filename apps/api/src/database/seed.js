@@ -1,8 +1,6 @@
 /**
  * Seed - Données initiales pour Mbiyo
  */
-require('dotenv').config({ path: '../../../.env' });
-require('dotenv').config();
 const db = require('./index');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');

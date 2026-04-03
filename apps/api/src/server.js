@@ -24,10 +24,15 @@ async function start() {
 
     // Exécuter les migrations et seeds (idempotent)
     if (process.env.RUN_MIGRATIONS === 'true') {
-      logger.info('🔄 Exécution des migrations...');
-      await migrate();
-      logger.info('🌱 Exécution des seeds...');
-      await seed();
+      try {
+        logger.info('🔄 Exécution des migrations...');
+        await migrate();
+        logger.info('🌱 Exécution des seeds...');
+        await seed();
+        logger.info('✅ Migrations et seeds terminés');
+      } catch (migrationError) {
+        logger.error('⚠️ Erreur migrations (serveur démarre quand même):', migrationError.message);
+      }
     }
 
     httpServer.listen(PORT, () => {
