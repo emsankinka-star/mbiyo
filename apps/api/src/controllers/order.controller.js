@@ -231,8 +231,8 @@ const orderController = {
       });
 
       // Notify supplier
-      const supplier = await db('suppliers').where('id', order.supplier_id).first();
-      io.to(`supplier_${supplier.user_id}`).emit('order_update', {
+      const orderSupplier = await db('suppliers').where('id', order.supplier_id).first();
+      io.to(`supplier_${orderSupplier.user_id}`).emit('order_update', {
         order_id: order.id, status: 'accepted',
       });
 
