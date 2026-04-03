@@ -2,16 +2,26 @@
 
 **Application complète de livraison (type Uber Eats) pour la RDC / Bukavu**
 
+## 🌐 Liens de Production
+
+| Application | URL |
+|-------------|-----|
+| Client | https://mbiyo-client.vercel.app |
+| Livreur | https://mbiyo-driver.vercel.app |
+| Fournisseur | https://mbiyo-supplier.vercel.app |
+| Admin | https://mbiyo-admin.vercel.app |
+| API Backend | https://mbiyo-production.up.railway.app |
+
 ## 📋 Architecture
 
 ```
 Mbiyo/
 ├── apps/
-│   ├── api/          → Backend Express.js (port 5000)
-│   ├── client/       → App Client Next.js (port 3000) — Orange
-│   ├── driver/       → App Livreur Next.js (port 3001) — Bleu
-│   ├── supplier/     → App Fournisseur Next.js (port 3002) — Vert
-│   └── admin/        → Dashboard Admin Next.js (port 3003) — Violet
+│   ├── api/          → Backend Express.js (Railway)
+│   ├── client/       → App Client Next.js (Vercel) — Orange
+│   ├── driver/       → App Livreur Next.js (Vercel) — Bleu
+│   ├── supplier/     → App Fournisseur Next.js (Vercel) — Vert
+│   └── admin/        → Dashboard Admin Next.js (Vercel) — Violet
 ├── packages/
 │   └── shared/       → Constantes partagées
 ├── package.json      → Monorepo (Turborepo + npm workspaces)
@@ -30,7 +40,34 @@ Mbiyo/
 | Paiement | SerdiPay API |
 | Cartes | Mapbox GL JS |
 | Notifications | Firebase Cloud Messaging |
+| Images | Sharp (compression) + Cloudinary (stockage) |
+| Hébergement | Railway (API + PostgreSQL) + Vercel (4 frontends) |
 | Monorepo | Turborepo + npm workspaces |
+
+## 🖼️ Gestion des Images
+
+Toutes les images sont **compressées avec Sharp** avant upload vers **Cloudinary**.
+
+| Type | Taille max | Qualité | Format |
+|------|-----------|---------|--------|
+| Avatar | 300px | 75% | WebP |
+| Logo fournisseur | 500px | 80% | WebP |
+| Cover fournisseur | 1200×600px | 80% | WebP |
+| Produit | 800px | 80% | WebP |
+| Catégorie | 400px | 80% | WebP |
+| Document livreur | 1200×1600px | 85% | WebP |
+
+### Endpoints d'upload
+
+| Endpoint | Description |
+|----------|-------------|
+| `PUT /api/products/:id/image` | Image produit |
+| `PUT /api/suppliers/me/logo` | Logo fournisseur |
+| `PUT /api/suppliers/me/cover` | Cover fournisseur |
+| `PUT /api/auth/me/avatar` | Avatar utilisateur |
+| `PUT /api/admin/categories/:id/image` | Image catégorie |
+| `PUT /api/admin/categories/:id/icon` | Icône catégorie |
+| `POST /api/drivers/register` | Documents livreur (multi-fichier) |
 
 ## 🚀 Installation
 
@@ -48,7 +85,29 @@ npm install
 ### 2. Configuration
 ```bash
 cp .env.example .env
-# Éditer .env avec vos paramètres (DB, JWT secret, SerdiPay, Mapbox, Firebase)
+# Éditer .env avec vos paramètres
+```
+
+#### Variables d'environnement requises (API)
+```env
+# Base de données
+DATABASE_URL=postgresql://user:password@host:5432/mbiyo
+
+# Auth
+JWT_SECRET=your-secret-key
+
+# Cloudinary (stockage images)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# Firebase (notifications push — optionnel)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=your-client-email
+FIREBASE_PRIVATE_KEY=your-private-key
+
+# CORS (domaines autorisés, séparés par virgules)
+CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003
 ```
 
 ### 3. Base de données
@@ -75,9 +134,9 @@ npm run dev --workspace=@mbiyo/admin      # Admin → :3003
 
 users, suppliers, drivers, categories, products, orders, order_items, payments, reviews, notifications, delivery_zones, support_tickets, support_messages, promotions
 
-## 🔐 Compte Admin par défaut
-- **Téléphone:** +243970000000
-- **Mot de passe:** admin123456
+## 🔐 Comptes par défaut
+- **Admin:** admin@mbiyo.cd / admin123456
+- **Téléphone admin:** +243990000000
 
 ## 💰 Monnaie & Tarification
 - **Devise:** CDF (Franc Congolais)
@@ -126,14 +185,20 @@ users, suppliers, drivers, categories, products, orders, order_items, payments, 
 | Route | Description |
 |-------|-------------|
 | POST /api/auth/register | Inscription |
-| POST /api/auth/login | Connexion |
+| POST /api/auth/login | Connexion (téléphone ou email) |
+| PUT /api/auth/me/avatar | Upload avatar |
 | GET /api/suppliers | Liste fournisseurs |
+| PUT /api/suppliers/me/logo | Upload logo fournisseur |
+| PUT /api/suppliers/me/cover | Upload cover fournisseur |
 | GET /api/products | Liste produits |
+| PUT /api/products/:id/image | Upload image produit |
 | POST /api/orders | Créer commande |
 | PUT /api/orders/:id/accept | Accepter commande |
 | PUT /api/orders/:id/delivered | Livraison confirmée |
 | POST /api/payments/initiate | Initier paiement SerdiPay |
 | GET /api/admin/stats | Statistiques globales |
+| PUT /api/admin/categories/:id/image | Upload image catégorie |
+| PUT /api/admin/categories/:id/icon | Upload icône catégorie |
 
 ## 🌐 WebSocket Events
 - `driver:location_update` — Position GPS du livreur
@@ -143,4 +208,4 @@ users, suppliers, drivers, categories, products, orders, order_items, payments, 
 - `order:assigned` — Commande assignée au livreur
 
 ## 📜 Licence
-Propriétaire — Mbiyo © 2024
+Propriétaire — Mbiyo © 2024-2026
