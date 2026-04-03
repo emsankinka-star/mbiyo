@@ -5,6 +5,16 @@
         "git init": true,
         "git add": true,
         "git commit": true,
-        "railway": true
+        "railway": true,
+        "git push": true,
+        "printf": true,
+        "/^cat ~/\\.railway/config\\.json 2>&1 \\| python3 -c \"import sys,json; d=json\\.load\\(sys\\.stdin\\); print\\(d\\.get\\('user',\\{\\}\\)\\.get\\('token','NO_TOKEN'\\)\\[:20\\]\\+'\\.\\.\\.' if d\\.get\\('user',\\{\\}\\)\\.get\\('token'\\) else 'NO_TOKEN'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python3 -c \"import json; d=json\\.load\\(open\\('/Users/emsministries/\\.railway/config\\.json'\\)\\); print\\(json\\.dumps\\(\\{k:v for k,v in d\\.get\\('user',\\{\\}\\)\\.items\\(\\)\\}, indent=2\\)\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }
