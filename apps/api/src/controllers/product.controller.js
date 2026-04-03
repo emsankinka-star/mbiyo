@@ -32,7 +32,7 @@ const productController = {
       if (supplier_id) query = query.where('products.supplier_id', supplier_id);
       if (category_id) query = query.where('products.category_id', category_id);
 
-      const total = await query.clone().count('* as count').first();
+      const total = await query.clone().clearSelect().count('* as count').first();
       const products = await query.orderBy('products.sort_order', 'asc').limit(lim).offset(offset);
 
       return apiResponse(res, 200, {

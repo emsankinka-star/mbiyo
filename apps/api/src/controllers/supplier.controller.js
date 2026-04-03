@@ -27,7 +27,7 @@ const supplierController = {
         query = query.where('suppliers.business_name', 'ilike', `%${search}%`);
       }
 
-      const total = await query.clone().count('* as count').first();
+      const total = await query.clone().clearSelect().count('* as count').first();
       const suppliers = await query.orderBy('suppliers.rating', 'desc').limit(lim).offset(offset);
 
       return apiResponse(res, 200, {

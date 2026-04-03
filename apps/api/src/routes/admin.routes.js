@@ -161,7 +161,7 @@ router.get('/orders', authenticate, authorize('admin'), async (req, res) => {
     if (from) query = query.where('orders.created_at', '>=', from);
     if (to) query = query.where('orders.created_at', '<=', to);
 
-    const total = await query.clone().count('* as count').first();
+    const total = await query.clone().clearSelect().count('* as count').first();
     const orders = await query.orderBy('orders.created_at', 'desc').limit(lim).offset(offset);
 
     return apiResponse(res, 200, {
