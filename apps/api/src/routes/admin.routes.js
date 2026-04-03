@@ -147,22 +147,23 @@ router.get('/orders', authenticate, authorize('admin'), async (req, res) => {
     const { status, page = 1, limit = 20, from, to } = req.query;
     const { limit: lim, offset } = paginate(null, parseInt(page), parseInt(limit));
 
-    let query = db('orders')
+    let baseQuery = db('orders')
       .leftJoin('users', 'orders.client_id', 'users.id')
-      .leftJoin('suppliers', 'orders.supplier_id', 'suppliers.id')
+      .leftJoin('suppliers', 'orders.supplier_id', 'suppliers.id');
+
+    if (status) baseQuery = baseQuery.where('orders.status', status);
+    if (from) baseQuery = baseQuery.where('orders.created_at', '>=', from);
+    if (to) baseQuery = baseQuery.where('orders.created_at', '<=', to);
+
+    const total = await baseQuery.clone().count('* as count').first();
+    const orders = await baseQuery.clone()
       .select(
         'orders.*',
         'users.full_name as client_name',
         'users.phone as client_phone',
         'suppliers.business_name as supplier_name'
-      );
-
-    if (status) query = query.where('orders.status', status);
-    if (from) query = query.where('orders.created_at', '>=', from);
-    if (to) query = query.where('orders.created_at', '<=', to);
-
-    const total = await query.clone().clearSelect().count('* as count').first();
-    const orders = await query.orderBy('orders.created_at', 'desc').limit(lim).offset(offset);
+      )
+      .orderBy('orders.created_at', 'desc').limit(lim).offset(offset);
 
     return apiResponse(res, 200, {
       orders,

@@ -24,16 +24,17 @@ const productController = {
       const { page = 1, limit = 20, supplier_id, category_id } = req.query;
       const { limit: lim, offset } = paginate(null, parseInt(page), parseInt(limit));
 
-      let query = db('products')
+      let baseQuery = db('products')
         .join('suppliers', 'products.supplier_id', 'suppliers.id')
-        .select('products.*', 'suppliers.business_name as supplier_name')
         .where('products.is_available', true);
 
-      if (supplier_id) query = query.where('products.supplier_id', supplier_id);
-      if (category_id) query = query.where('products.category_id', category_id);
+      if (supplier_id) baseQuery = baseQuery.where('products.supplier_id', supplier_id);
+      if (category_id) baseQuery = baseQuery.where('products.category_id', category_id);
 
-      const total = await query.clone().clearSelect().count('* as count').first();
-      const products = await query.orderBy('products.sort_order', 'asc').limit(lim).offset(offset);
+      const total = await baseQuery.clone().count('* as count').first();
+      const products = await baseQuery.clone()
+        .select('products.*', 'suppliers.business_name as supplier_name')
+        .orderBy('products.sort_order', 'asc').limit(lim).offset(offset);
 
       return apiResponse(res, 200, {
         products,

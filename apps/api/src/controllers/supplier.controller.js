@@ -13,22 +13,19 @@ const supplierController = {
       const { page = 1, limit = 20, type, search, city } = req.query;
       const { limit: lim, offset } = paginate(null, parseInt(page), parseInt(limit));
 
-      let query = db('suppliers')
+      let baseQuery = db('suppliers')
         .join('users', 'suppliers.user_id', 'users.id')
-        .select(
-          'suppliers.*',
-          'users.full_name as owner_name',
-          'users.phone as owner_phone'
-        )
         .where('suppliers.is_validated', true);
 
-      if (type) query = query.where('suppliers.business_type', type);
+      if (type) baseQuery = baseQuery.where('suppliers.business_type', type);
       if (search) {
-        query = query.where('suppliers.business_name', 'ilike', `%${search}%`);
+        baseQuery = baseQuery.where('suppliers.business_name', 'ilike', `%${search}%`);
       }
 
-      const total = await query.clone().clearSelect().count('* as count').first();
-      const suppliers = await query.orderBy('suppliers.rating', 'desc').limit(lim).offset(offset);
+      const total = await baseQuery.clone().count('* as count').first();
+      const suppliers = await baseQuery.clone()
+        .select('suppliers.*', 'users.full_name as owner_name', 'users.phone as owner_phone')
+        .orderBy('suppliers.rating', 'desc').limit(lim).offset(offset);
 
       return apiResponse(res, 200, {
         suppliers,
