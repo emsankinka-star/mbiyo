@@ -75,6 +75,16 @@ const useAuthStore = create((set) => ({
     return data.data;
   },
 
+  uploadLogo: async (file) => {
+    const fd = new FormData();
+    fd.append('logo', file);
+    const { data } = await api.put('/suppliers/me/logo', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    set({ supplier: data.data });
+    return data.data;
+  },
+
   logout: () => {
     localStorage.removeItem('supplier_token');
     localStorage.removeItem('supplier_refresh_token');

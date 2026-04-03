@@ -175,7 +175,7 @@ const supplierController = {
    */
   async updateProfile(req, res) {
     try {
-      const { business_name, description, address, latitude, longitude, preparation_time, minimum_order, address_details } = req.body;
+      const { business_name, description, address, latitude, longitude, preparation_time, minimum_order, address_details, rccm, email } = req.body;
       const updates = {};
       if (business_name) updates.business_name = business_name;
       if (description !== undefined) updates.description = description;
@@ -185,6 +185,8 @@ const supplierController = {
       if (preparation_time) updates.preparation_time = preparation_time;
       if (minimum_order !== undefined) updates.minimum_order = minimum_order;
       if (address_details !== undefined) updates.address_details = JSON.stringify(address_details);
+      if (rccm !== undefined) updates.rccm = rccm;
+      if (email !== undefined) updates.email = email;
 
       const [supplier] = await db('suppliers')
         .where('user_id', req.user.id)

@@ -11,3 +11,4 @@ coverage/
 uploads/
 package-lock.json
 .vercel
+.env*.local

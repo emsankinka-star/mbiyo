@@ -1,21 +1,27 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '../../stores/authStore';
 import toast from 'react-hot-toast';
 import SupplierAddressModal from '../../components/SupplierAddressModal';
 import {
   FiArrowLeft, FiUser, FiPhone, FiMapPin, FiClock, FiLogOut,
-  FiEdit, FiStar, FiShoppingBag, FiNavigation, FiSave, FiX
+  FiEdit, FiStar, FiShoppingBag, FiNavigation, FiSave, FiX,
+  FiMail, FiFileText, FiCamera
 } from 'react-icons/fi';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, supplier, loadUser, loadSupplierProfile, updateSupplierProfile, logout } = useAuthStore();
+  const { user, supplier, loadUser, loadSupplierProfile, updateSupplierProfile, uploadLogo, logout } = useAuthStore();
+  const logoInputRef = useRef(null);
 
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
-  const [editForm, setEditForm] = useState({ business_name: '', description: '', preparation_time: '' });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [editForm, setEditForm] = useState({
+    business_name: '', description: '', preparation_time: '',
+    rccm: '', email: '', minimum_order: '',
+  });
 
   useEffect(() => {
     loadUser();
@@ -29,6 +35,9 @@ export default function ProfilePage() {
         business_name: supplier.business_name || '',
         description: supplier.description || '',
         preparation_time: supplier.preparation_time || '30',
+        rccm: supplier.rccm || '',
+        email: supplier.email || '',
+        minimum_order: supplier.minimum_order || '0',
       });
     }
   }, [supplier]);
@@ -45,6 +54,9 @@ export default function ProfilePage() {
         business_name: editForm.business_name,
         description: editForm.description,
         preparation_time: parseInt(editForm.preparation_time) || 30,
+        rccm: editForm.rccm,
+        email: editForm.email,
+        minimum_order: parseFloat(editForm.minimum_order) || 0,
       });
       setEditingInfo(false);
       toast.success('Profil mis à jour');
@@ -63,6 +75,20 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      await uploadLogo(file);
+      toast.success('Logo mis à jour');
+    } catch {
+      toast.error('Erreur lors de l\'upload');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const display = supplier || user;
   if (!user) return null;
 
@@ -77,8 +103,25 @@ export default function ProfilePage() {
           <h1 className="text-lg font-bold">Mon profil</h1>
         </div>
         <div className="text-center">
-          <div className="w-20 h-20 bg-white/20 rounded-full mx-auto flex items-center justify-center text-3xl font-bold">
-            {display?.business_name?.charAt(0) || user.full_name?.charAt(0) || 'F'}
+          {/* Logo avatar with upload */}
+          <div className="relative inline-block">
+            <div
+              onClick={() => logoInputRef.current?.click()}
+              className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-3xl font-bold overflow-hidden cursor-pointer border-2 border-white/30 hover:border-white/60 transition-colors"
+              style={{ background: supplier?.logo_url ? 'transparent' : 'rgba(255,255,255,0.2)' }}
+            >
+              {uploadingLogo ? (
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : supplier?.logo_url ? (
+                <img src={supplier.logo_url} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                display?.business_name?.charAt(0) || user.full_name?.charAt(0) || 'F'
+              )}
+            </div>
+            <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md cursor-pointer" onClick={() => logoInputRef.current?.click()}>
+              <FiCamera size={12} className="text-green-600" />
+            </div>
+            <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
           </div>
           <h2 className="text-xl font-bold mt-3">{display?.business_name || user.full_name}</h2>
           <div className="flex items-center justify-center gap-1 mt-1 text-green-200">
@@ -123,10 +166,28 @@ export default function ProfilePage() {
                 <FiPhone className="text-gray-400 shrink-0" />
                 <span className="text-gray-600">{user.phone}</span>
               </div>
+              {supplier?.email && (
+                <div className="flex items-center gap-3 text-sm">
+                  <FiMail className="text-gray-400 shrink-0" />
+                  <span className="text-gray-600">{supplier.email}</span>
+                </div>
+              )}
+              {supplier?.rccm && (
+                <div className="flex items-center gap-3 text-sm">
+                  <FiFileText className="text-gray-400 shrink-0" />
+                  <span className="text-gray-600">RCCM : {supplier.rccm}</span>
+                </div>
+              )}
               <div className="flex items-center gap-3 text-sm">
                 <FiClock className="text-gray-400 shrink-0" />
                 <span className="text-gray-600">Préparation : {display?.preparation_time || 30} min</span>
               </div>
+              {parseFloat(supplier?.minimum_order) > 0 && (
+                <div className="flex items-center gap-3 text-sm">
+                  <FiShoppingBag className="text-gray-400 shrink-0" />
+                  <span className="text-gray-600">Commande min. : {parseInt(supplier.minimum_order).toLocaleString()} CDF</span>
+                </div>
+              )}
               {display?.description && (
                 <p className="text-xs text-gray-400 mt-1 pl-8">{display.description}</p>
               )}
@@ -142,6 +203,24 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
+                <label className="block text-xs text-gray-500 mb-1">Adresse email</label>
+                <input
+                  type="email" value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  placeholder="contact@moncommerce.com"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Numéro RCCM</label>
+                <input
+                  type="text" value={editForm.rccm}
+                  onChange={(e) => setEditForm({ ...editForm, rccm: e.target.value })}
+                  placeholder="CD/BKV/RCCM/..."
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                />
+              </div>
+              <div>
                 <label className="block text-xs text-gray-500 mb-1">Description</label>
                 <textarea
                   value={editForm.description}
@@ -150,13 +229,23 @@ export default function ProfilePage() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none"
                 />
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Temps de préparation (min)</label>
-                <input
-                  type="number" value={editForm.preparation_time}
-                  onChange={(e) => setEditForm({ ...editForm, preparation_time: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Préparation (min)</label>
+                  <input
+                    type="number" value={editForm.preparation_time}
+                    onChange={(e) => setEditForm({ ...editForm, preparation_time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Commande min. (CDF)</label>
+                  <input
+                    type="number" value={editForm.minimum_order}
+                    onChange={(e) => setEditForm({ ...editForm, minimum_order: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                  />
+                </div>
               </div>
             </div>
           )}
