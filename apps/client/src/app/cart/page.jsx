@@ -10,9 +10,15 @@ import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { FiArrowLeft, FiPlus, FiMinus, FiTrash2, FiMapPin } from 'react-icons/fi';
 
+const UNIT_SHORT = { piece: 'pce', kg: 'kg', g: 'g', L: 'L', mL: 'mL', m: 'm', pack: 'paq' };
+const formatQty = (qty, unit) => {
+  if (!unit || unit === 'piece' || unit === 'pack') return Math.round(qty).toString();
+  return qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
+};
+
 export default function CartPage() {
   const router = useRouter();
-  const { items, supplierId, supplierName, updateQuantity, removeItem, clearCart } = useCartStore();
+  const { items, supplierId, supplierName, removeItem, clearCart, incrementItem, decrementItem } = useCartStore();
   const { latitude, longitude, address } = useLocationStore();
   const { token } = useAuthStore();
   const [notes, setNotes] = useState('');
@@ -117,14 +123,24 @@ export default function CartPage() {
               </div>
               <p className="text-primary-500 font-bold text-sm mt-1">
                 {Math.round(parseFloat(item.promo_price || item.price) * item.quantity)} CDF
+                {item.unit && item.unit !== 'piece' && (
+                  <span className="text-xs text-gray-400 font-normal ml-1">
+                    ({formatQty(item.quantity, item.unit)} {UNIT_SHORT[item.unit] || item.unit} × {parseInt(item.promo_price || item.price)} CDF/{UNIT_SHORT[item.unit]})
+                  </span>
+                )}
               </p>
               <div className="flex items-center gap-2 mt-2">
-                <button onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                <button onClick={() => decrementItem(item.id)}
                   className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
-                  <FiMinus size={14} />
+                  {item.quantity <= (parseFloat(item.min_quantity) || parseFloat(item.step) || 1) 
+                    ? <FiTrash2 size={13} className="text-red-400" />
+                    : <FiMinus size={14} />}
                 </button>
-                <span className="text-sm font-semibold">{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                <span className="text-sm font-semibold min-w-[2.5rem] text-center">
+                  {formatQty(item.quantity, item.unit)}
+                  {item.unit && item.unit !== 'piece' && <span className="text-[10px] text-gray-400 ml-0.5">{UNIT_SHORT[item.unit]}</span>}
+                </span>
+                <button onClick={() => incrementItem(item.id)}
                   className="w-7 h-7 rounded-full bg-primary-500 text-white flex items-center justify-center">
                   <FiPlus size={14} />
                 </button>

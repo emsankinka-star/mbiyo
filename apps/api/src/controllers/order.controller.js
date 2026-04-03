@@ -45,16 +45,18 @@ const orderController = {
           return apiResponse(res, 400, null, `Stock insuffisant pour: ${product.name}`);
         }
 
+        const qty = parseFloat(item.quantity);
         const unitPrice = product.promo_price || product.price;
-        const totalPrice = unitPrice * item.quantity;
+        const totalPrice = parseFloat((unitPrice * qty).toFixed(2));
         subtotal += totalPrice;
 
         orderItems.push({
           product_id: product.id,
           product_name: product.name,
-          quantity: item.quantity,
+          quantity: qty,
           unit_price: unitPrice,
           total_price: totalPrice,
+          unit: product.unit || 'piece',
           selected_variants: JSON.stringify(item.variants || []),
           selected_extras: JSON.stringify(item.extras || []),
           special_instructions: item.special_instructions,
@@ -62,7 +64,7 @@ const orderController = {
 
         // Décrémenter le stock (-1 = illimité, skip)
         if (product.stock_quantity !== -1) {
-          await trx('products').where('id', product.id).decrement('stock_quantity', item.quantity);
+          await trx('products').where('id', product.id).decrement('stock_quantity', qty);
         }
       }
 

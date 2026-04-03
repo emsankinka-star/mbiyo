@@ -112,7 +112,9 @@ async function migrate() {
       table.boolean('is_available').defaultTo(true);
       table.jsonb('variants').defaultTo('[]');
       table.jsonb('extras').defaultTo('[]');
-      table.string('unit'); // kg, litre, pièce
+      table.string('unit').defaultTo('piece'); // piece, kg, g, L, mL, m, pack
+      table.decimal('min_quantity', 10, 3).defaultTo(1); // quantité minimum
+      table.decimal('step', 10, 3).defaultTo(1); // incrément (ex: 0.1 pour kg)
       table.integer('sort_order').defaultTo(0);
       table.timestamps(true, true);
     });
@@ -159,9 +161,10 @@ async function migrate() {
       table.uuid('order_id').references('id').inTable('orders').onDelete('CASCADE').notNullable();
       table.uuid('product_id').references('id').inTable('products').onDelete('SET NULL');
       table.string('product_name').notNullable();
-      table.integer('quantity').notNullable().defaultTo(1);
+      table.decimal('quantity', 10, 3).notNullable().defaultTo(1);
       table.decimal('unit_price', 12, 2).notNullable();
       table.decimal('total_price', 12, 2).notNullable();
+      table.string('unit').defaultTo('piece'); // snapshot de l'unité au moment de la commande
       table.jsonb('selected_variants').defaultTo('[]');
       table.jsonb('selected_extras').defaultTo('[]');
       table.text('special_instructions');
@@ -291,6 +294,23 @@ async function migrate() {
     await db.raw('CREATE INDEX IF NOT EXISTS idx_drivers_online ON drivers(is_online, is_validated, is_busy)');
     await db.raw('CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id)');
     await db.raw('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read)');
+
+    // ==========================================
+    // ALTER existing tables (idempotent)
+    // ==========================================
+    const addColIfMissing = async (tbl, col, fn) => {
+      const has = await db.schema.hasColumn(tbl, col);
+      if (!has) await db.schema.alterTable(tbl, fn);
+    };
+    await addColIfMissing('products', 'min_quantity', (t) => t.decimal('min_quantity', 10, 3).defaultTo(1));
+    await addColIfMissing('products', 'step', (t) => t.decimal('step', 10, 3).defaultTo(1));
+    await addColIfMissing('order_items', 'unit', (t) => t.string('unit').defaultTo('piece'));
+    // Change quantity from integer to decimal (safe for existing data)
+    await db.raw(`ALTER TABLE order_items ALTER COLUMN quantity TYPE decimal(10,3) USING quantity::decimal(10,3)`);
+    // Set default unit on products that have null
+    await db.raw(`UPDATE products SET unit = 'piece' WHERE unit IS NULL`);
+    await db.raw(`UPDATE products SET min_quantity = 1 WHERE min_quantity IS NULL`);
+    await db.raw(`UPDATE products SET step = 1 WHERE step IS NULL`);
 
     logger.info('✅ Migration terminée avec succès!');
   } catch (error) {

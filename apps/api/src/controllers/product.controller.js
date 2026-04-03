@@ -3,6 +3,18 @@ const { db } = require('../database');
 const { apiResponse, paginate } = require('../utils/helpers');
 const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
+const VALID_UNITS = ['piece', 'kg', 'g', 'L', 'mL', 'm', 'pack'];
+
+const UNIT_DEFAULTS = {
+  piece: { min_quantity: 1, step: 1 },
+  kg:    { min_quantity: 0.1, step: 0.1 },
+  g:     { min_quantity: 100, step: 100 },
+  L:     { min_quantity: 0.5, step: 0.5 },
+  mL:    { min_quantity: 100, step: 100 },
+  m:     { min_quantity: 0.5, step: 0.5 },
+  pack:  { min_quantity: 1, step: 1 },
+};
+
 const productController = {
   /**
    * GET /api/products
@@ -89,7 +101,10 @@ const productController = {
       const supplier = await db('suppliers').where('user_id', req.user.id).first();
       if (!supplier) return apiResponse(res, 403, null, 'Profil fournisseur requis');
 
-      const { name, description, price, promo_price, category_id, stock_quantity, variants, extras, unit } = req.body;
+      const { name, description, price, promo_price, category_id, stock_quantity, variants, extras, unit, min_quantity, step } = req.body;
+
+      const safeUnit = VALID_UNITS.includes(unit) ? unit : 'piece';
+      const defaults = UNIT_DEFAULTS[safeUnit];
 
       const [product] = await db('products').insert({
         supplier_id: supplier.id,
@@ -101,7 +116,9 @@ const productController = {
         stock_quantity: stock_quantity || -1,
         variants: JSON.stringify(variants || []),
         extras: JSON.stringify(extras || []),
-        unit,
+        unit: safeUnit,
+        min_quantity: min_quantity || defaults.min_quantity,
+        step: step || defaults.step,
       }).returning('*');
 
       return apiResponse(res, 201, product, 'Produit créé');
@@ -120,8 +137,15 @@ const productController = {
       if (!product) return apiResponse(res, 404, null, 'Produit non trouvé');
 
       const updates = {};
-      const fields = ['name', 'description', 'price', 'promo_price', 'category_id', 'stock_quantity', 'is_available', 'unit', 'sort_order'];
+      const fields = ['name', 'description', 'price', 'promo_price', 'category_id', 'stock_quantity', 'is_available', 'sort_order', 'min_quantity', 'step'];
       fields.forEach((f) => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+
+      if (req.body.unit && VALID_UNITS.includes(req.body.unit)) {
+        updates.unit = req.body.unit;
+        // Apply defaults for the new unit if min_quantity/step not explicitly set
+        if (!req.body.min_quantity) updates.min_quantity = UNIT_DEFAULTS[req.body.unit].min_quantity;
+        if (!req.body.step) updates.step = UNIT_DEFAULTS[req.body.unit].step;
+      }
 
       if (req.body.variants) updates.variants = JSON.stringify(req.body.variants);
       if (req.body.extras) updates.extras = JSON.stringify(req.body.extras);

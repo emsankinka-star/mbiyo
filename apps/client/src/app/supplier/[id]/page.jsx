@@ -6,14 +6,20 @@ import api from '@/lib/api';
 import { useCartStore } from '@/stores/cartStore';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiStar, FiClock, FiMapPin, FiPlus, FiMinus, FiShoppingCart } from 'react-icons/fi';
+import { FiArrowLeft, FiStar, FiClock, FiMapPin, FiPlus, FiMinus, FiShoppingCart, FiTrash2 } from 'react-icons/fi';
+
+const UNIT_SHORT = { piece: 'pce', kg: 'kg', g: 'g', L: 'L', mL: 'mL', m: 'm', pack: 'paq' };
+const formatQty = (qty, unit) => {
+  if (!unit || unit === 'piece' || unit === 'pack') return Math.round(qty).toString();
+  return qty % 1 === 0 ? qty.toString() : qty.toFixed(1);
+};
 
 export default function SupplierPage() {
   const { id } = useParams();
   const [supplier, setSupplier] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { addItem, items } = useCartStore();
+  const { addItem, items, incrementItem, decrementItem, removeItem } = useCartStore();
 
   useEffect(() => {
     fetchData();
@@ -132,25 +138,37 @@ export default function SupplierPage() {
                     <div>
                       {product.promo_price ? (
                         <div className="flex items-center gap-1">
-                          <span className="font-bold text-primary-500 text-sm">{parseInt(product.promo_price)} CDF</span>
+                          <span className="font-bold text-primary-500 text-sm">
+                            {parseInt(product.promo_price)} CDF{product.unit && product.unit !== 'piece' ? `/${UNIT_SHORT[product.unit] || product.unit}` : ''}
+                          </span>
                           <span className="text-xs text-gray-400 line-through">{parseInt(product.price)} CDF</span>
                         </div>
                       ) : (
-                        <span className="font-bold text-dark-800 text-sm">{parseInt(product.price)} CDF</span>
+                        <span className="font-bold text-dark-800 text-sm">
+                          {parseInt(product.price)} CDF{product.unit && product.unit !== 'piece' ? `/${UNIT_SHORT[product.unit] || product.unit}` : ''}
+                        </span>
+                      )}
+                      {product.min_quantity && product.unit && product.unit !== 'piece' && (
+                        <p className="text-[10px] text-gray-400">Min: {formatQty(product.min_quantity, product.unit)} {UNIT_SHORT[product.unit]}</p>
                       )}
                     </div>
 
                     {getCartQuantity(product.id) > 0 ? (
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => useCartStore.getState().updateQuantity(product.id, getCartQuantity(product.id) - 1)}
+                          onClick={() => decrementItem(product.id)}
                           className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center"
                         >
-                          <FiMinus size={14} />
+                          {getCartQuantity(product.id) <= (parseFloat(product.min_quantity) || parseFloat(product.step) || 1) 
+                            ? <FiTrash2 size={13} className="text-red-400" />
+                            : <FiMinus size={14} />}
                         </button>
-                        <span className="text-sm font-semibold w-5 text-center">{getCartQuantity(product.id)}</span>
+                        <span className="text-sm font-semibold min-w-[2rem] text-center">
+                          {formatQty(getCartQuantity(product.id), product.unit)}
+                          {product.unit && product.unit !== 'piece' && <span className="text-[10px] text-gray-400 ml-0.5">{UNIT_SHORT[product.unit]}</span>}
+                        </span>
                         <button
-                          onClick={() => handleAddToCart(product)}
+                          onClick={() => incrementItem(product.id)}
                           className="w-7 h-7 rounded-full bg-primary-500 text-white flex items-center justify-center"
                         >
                           <FiPlus size={14} />
