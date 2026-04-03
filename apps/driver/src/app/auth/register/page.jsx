@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import useAuthStore from '../../stores/authStore';
+import useAuthStore from '../../../stores/authStore';
 import toast from 'react-hot-toast';
 import { FiUser, FiPhone, FiLock, FiTruck, FiUpload, FiArrowRight } from 'react-icons/fi';
 

@@ -1,11 +1,11 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import useAuthStore from '../../stores/authStore';
-import useDriverStore from '../../stores/driverStore';
-import { getSocket } from '../../lib/socket';
+import useAuthStore from '../../../stores/authStore';
+import useDriverStore from '../../../stores/driverStore';
+import { getSocket } from '../../../lib/socket';
 import toast from 'react-hot-toast';
-import api from '../../lib/api';
+import api from '../../../lib/api';
 import { FiPhone, FiMapPin, FiNavigation, FiCheck, FiPackage, FiArrowLeft } from 'react-icons/fi';
 
 const STATUS_STEPS = [
