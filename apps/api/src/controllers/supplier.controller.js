@@ -312,7 +312,4 @@ const supplierController = {
   },
 };
 
-// Import paginate
-const { paginate } = require('../utils/helpers');
-
 module.exports = supplierController;
