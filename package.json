@@ -1,0 +1,28 @@
+{
+  "name": "mbiyo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mbiyo - Application de livraison multi-services pour la RDC",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:client": "npm run dev --workspace=apps/client",
+    "dev:driver": "npm run dev --workspace=apps/driver",
+    "dev:supplier": "npm run dev --workspace=apps/supplier",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "db:migrate": "npm run migrate --workspace=apps/api",
+    "db:seed": "npm run seed --workspace=apps/api"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

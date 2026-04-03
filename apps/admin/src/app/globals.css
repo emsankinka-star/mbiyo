@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+:root { --primary: #7C3AED; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', system-ui, sans-serif; background-color: #F9FAFB; }
+.sidebar-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors; }
+.sidebar-link.active { @apply bg-primary-100 text-primary-700; }
+.sidebar-link:not(.active) { @apply text-gray-500 hover:bg-gray-100; }
