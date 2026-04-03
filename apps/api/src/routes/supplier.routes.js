@@ -11,9 +11,14 @@ router.get('/:id', supplierController.getById);
 router.get('/:id/products', supplierController.getProducts);
 
 // Routes authentifiées (fournisseur)
-router.post('/register', authenticate, [
+router.post('/register', authenticate, upload.single('logo'), [
   body('business_name').trim().notEmpty(),
-  body('business_type').isIn(['restaurant', 'supermarket', 'pharmacy', 'fuel', 'shop']),
+  body('business_type').isIn([
+    'restaurant', 'supermarket', 'pharmacy', 'fuel', 'shop',
+    'bakery', 'butcher', 'bar', 'cafe', 'hotel',
+    'laundry', 'beauty_salon', 'gym', 'electronics',
+    'clothing', 'bookstore', 'hardware', 'florist', 'other'
+  ]),
 ], supplierController.register);
 
 router.put('/me', authenticate, authorize('supplier'), supplierController.updateProfile);

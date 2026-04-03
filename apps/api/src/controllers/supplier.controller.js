@@ -128,7 +128,7 @@ const supplierController = {
         return apiResponse(res, 400, errors.array(), 'Données invalides');
       }
 
-      const { business_name, business_type, description, address, latitude, longitude } = req.body;
+      const { business_name, business_type, description, address, latitude, longitude, rccm, email } = req.body;
 
       // Vérifier si déjà fournisseur
       const existing = await db('suppliers').where('user_id', req.user.id).first();
@@ -136,8 +136,15 @@ const supplierController = {
         return apiResponse(res, 409, null, 'Vous êtes déjà enregistré comme fournisseur');
       }
 
+      // Upload logo si fourni
+      let logo_url = null;
+      if (req.file) {
+        const result = await uploadToCloudinary(req.file, 'suppliers/logos', COMPRESS_PRESETS.logo);
+        logo_url = result.url;
+      }
+
       // Créer le profil fournisseur
-      const [supplier] = await db('suppliers').insert({
+      const insertData = {
         user_id: req.user.id,
         business_name,
         business_type,
@@ -145,7 +152,12 @@ const supplierController = {
         address,
         latitude,
         longitude,
-      }).returning('*');
+      };
+      if (rccm) insertData.rccm = rccm;
+      if (email) insertData.email = email;
+      if (logo_url) insertData.logo_url = logo_url;
+
+      const [supplier] = await db('suppliers').insert(insertData).returning('*');
 
       // Mettre à jour le rôle
       await db('users').where('id', req.user.id).update({ role: 'supplier' });

@@ -39,7 +39,14 @@ async function migrate() {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('user_id').references('id').inTable('users').onDelete('CASCADE').notNullable();
       table.string('business_name').notNullable();
-      table.enu('business_type', ['restaurant', 'supermarket', 'pharmacy', 'fuel', 'shop']).notNullable();
+      table.enu('business_type', [
+        'restaurant', 'supermarket', 'pharmacy', 'fuel', 'shop',
+        'bakery', 'butcher', 'bar', 'cafe', 'hotel',
+        'laundry', 'beauty_salon', 'gym', 'electronics',
+        'clothing', 'bookstore', 'hardware', 'florist', 'other'
+      ]).notNullable();
+      table.string('rccm');
+      table.string('email');
       table.text('description');
       table.string('logo_url');
       table.string('cover_url');
@@ -330,6 +337,14 @@ async function migrate() {
     await db.raw(`UPDATE products SET step = 1 WHERE step IS NULL`);
     await addColIfMissing('suppliers', 'address_details', (t) => t.jsonb('address_details').defaultTo('{}'));
     await addColIfMissing('orders', 'delivery_details', (t) => t.jsonb('delivery_details').defaultTo('{}'));
+    // Supplier RCCM + email
+    await addColIfMissing('suppliers', 'rccm', (t) => t.string('rccm'));
+    await addColIfMissing('suppliers', 'email', (t) => t.string('email'));
+    // Expand business_type enum (add new values if missing)
+    const newTypes = ['bakery','butcher','bar','cafe','hotel','laundry','beauty_salon','gym','electronics','clothing','bookstore','hardware','florist','other'];
+    for (const bt of newTypes) {
+      await db.raw(`ALTER TYPE suppliers_business_type ADD VALUE IF NOT EXISTS '${bt}'`).catch(() => {});
+    }
 
     logger.info('✅ Migration terminée avec succès!');
   } catch (error) {

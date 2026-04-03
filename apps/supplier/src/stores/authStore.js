@@ -18,9 +18,8 @@ const useAuthStore = create((set) => ({
 
   register: async (formData) => {
     // Step 1: Create user account
-    const { full_name, owner_name, phone, password, ...supplierData } = Object.fromEntries(
-      typeof formData.entries === 'function' ? formData.entries() : Object.entries(formData)
-    );
+    const entries = typeof formData.entries === 'function' ? Object.fromEntries(formData.entries()) : formData;
+    const { full_name, owner_name, phone, password, logo, ...supplierData } = entries;
     const registerRes = await api.post('/auth/register', {
       full_name: full_name || owner_name,
       phone,
@@ -32,12 +31,20 @@ const useAuthStore = create((set) => ({
     localStorage.setItem('supplier_refresh_token', refreshToken);
     set({ user: registerRes.data.data.user, isAuthenticated: true, loading: false });
 
-    // Step 2: Create supplier profile
-    const { data } = await api.post('/suppliers/register', {
-      business_name: supplierData.business_name,
-      business_type: supplierData.business_type,
-      address: supplierData.address,
-      description: supplierData.description,
+    // Step 2: Create supplier profile (with optional logo file)
+    const supplierFd = new FormData();
+    supplierFd.append('business_name', supplierData.business_name);
+    supplierFd.append('business_type', supplierData.business_type);
+    if (supplierData.address) supplierFd.append('address', supplierData.address);
+    if (supplierData.description) supplierFd.append('description', supplierData.description);
+    if (supplierData.rccm) supplierFd.append('rccm', supplierData.rccm);
+    if (supplierData.email) supplierFd.append('email', supplierData.email);
+    // Get the original logo file from the original FormData
+    const logoFile = typeof formData.get === 'function' ? formData.get('logo') : null;
+    if (logoFile && logoFile instanceof File) supplierFd.append('logo', logoFile);
+
+    const { data } = await api.post('/suppliers/register', supplierFd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     set({ supplier: data.data });
     return data.data;

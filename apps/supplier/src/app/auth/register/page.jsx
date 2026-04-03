@@ -3,14 +3,28 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '../../../stores/authStore';
 import toast from 'react-hot-toast';
-import { FiUser, FiPhone, FiLock, FiMapPin, FiShoppingBag, FiArrowRight } from 'react-icons/fi';
+import { FiUser, FiPhone, FiLock, FiMapPin, FiShoppingBag, FiArrowRight, FiMail, FiFileText, FiCamera, FiAlignLeft } from 'react-icons/fi';
 
 const BUSINESS_TYPES = [
-  { value: 'restaurant', label: 'Restaurant' },
-  { value: 'supermarket', label: 'Supermarché' },
-  { value: 'pharmacy', label: 'Pharmacie' },
-  { value: 'fuel', label: 'Station' },
-  { value: 'shop', label: 'Boutique' },
+  { value: 'restaurant', label: 'Restaurant', icon: '🍽️' },
+  { value: 'supermarket', label: 'Supermarché', icon: '🛒' },
+  { value: 'pharmacy', label: 'Pharmacie', icon: '💊' },
+  { value: 'fuel', label: 'Station', icon: '⛽' },
+  { value: 'shop', label: 'Boutique', icon: '🏪' },
+  { value: 'bakery', label: 'Boulangerie', icon: '🥖' },
+  { value: 'butcher', label: 'Boucherie', icon: '🥩' },
+  { value: 'bar', label: 'Bar', icon: '🍺' },
+  { value: 'cafe', label: 'Café', icon: '☕' },
+  { value: 'hotel', label: 'Hôtel', icon: '🏨' },
+  { value: 'laundry', label: 'Pressing', icon: '👔' },
+  { value: 'beauty_salon', label: 'Salon de beauté', icon: '💇' },
+  { value: 'gym', label: 'Salle de sport', icon: '🏋️' },
+  { value: 'electronics', label: 'Électronique', icon: '📱' },
+  { value: 'clothing', label: 'Prêt-à-porter', icon: '👗' },
+  { value: 'bookstore', label: 'Librairie', icon: '📚' },
+  { value: 'hardware', label: 'Quincaillerie', icon: '🔧' },
+  { value: 'florist', label: 'Fleuriste', icon: '💐' },
+  { value: 'other', label: 'Autre', icon: '📦' },
 ];
 
 export default function SupplierRegister() {
@@ -19,11 +33,21 @@ export default function SupplierRegister() {
   const [form, setForm] = useState({
     owner_name: '', business_name: '', phone: '', password: '',
     business_type: 'restaurant', address: '', description: '',
+    rccm: '', email: '',
   });
   const [logo, setLogo] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const update = (k, v) => setForm({ ...form, [k]: v });
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogo(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,6 +73,24 @@ export default function SupplierRegister() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 p-6 -mt-3 bg-white rounded-t-3xl space-y-4">
+        {/* Logo */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-600 block mb-2">Logo du commerce (optionnel)</label>
+          <label className="cursor-pointer">
+            <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:border-green-500 transition-colors">
+              {logoPreview ? (
+                <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-center">
+                  <FiCamera className="text-gray-400 mx-auto text-xl" />
+                  <span className="text-xs text-gray-400 mt-1">Photo</span>
+                </div>
+              )}
+            </div>
+            <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+          </label>
+        </div>
+
         <div>
           <label className="text-sm font-medium text-gray-600 block mb-1">Nom du propriétaire</label>
           <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-green-500">
@@ -71,6 +113,13 @@ export default function SupplierRegister() {
           </div>
         </div>
         <div>
+          <label className="text-sm font-medium text-gray-600 block mb-1">Adresse email (optionnel)</label>
+          <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-green-500">
+            <FiMail className="text-gray-400 mr-3" />
+            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="contact@moncommerce.com" className="flex-1 outline-none text-sm" />
+          </div>
+        </div>
+        <div>
           <label className="text-sm font-medium text-gray-600 block mb-1">Mot de passe</label>
           <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-green-500">
             <FiLock className="text-gray-400 mr-3" />
@@ -78,12 +127,20 @@ export default function SupplierRegister() {
           </div>
         </div>
         <div>
+          <label className="text-sm font-medium text-gray-600 block mb-1">Numéro RCCM (optionnel)</label>
+          <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-green-500">
+            <FiFileText className="text-gray-400 mr-3" />
+            <input value={form.rccm} onChange={(e) => update('rccm', e.target.value)} placeholder="CD/BKV/RCCM/..." className="flex-1 outline-none text-sm" />
+          </div>
+        </div>
+        <div>
           <label className="text-sm font-medium text-gray-600 block mb-1">Type de commerce</label>
           <div className="grid grid-cols-3 gap-2">
             {BUSINESS_TYPES.map((t) => (
               <button type="button" key={t.value} onClick={() => update('business_type', t.value)}
-                className={`py-2.5 rounded-xl text-xs font-medium border-2 transition-colors ${form.business_type === t.value ? 'border-green-500 bg-green-50 text-green-600' : 'border-gray-200 text-gray-500'}`}>
-                {t.label}
+                className={`py-2 px-1 rounded-xl text-xs font-medium border-2 transition-colors flex flex-col items-center gap-0.5 ${form.business_type === t.value ? 'border-green-500 bg-green-50 text-green-600' : 'border-gray-200 text-gray-500'}`}>
+                <span className="text-base">{t.icon}</span>
+                <span>{t.label}</span>
               </button>
             ))}
           </div>
