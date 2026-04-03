@@ -185,32 +185,6 @@ export default function OrderTrackingPage() {
         </div>
       )}
 
-      {/* Supplier info */}
-      {order.supplier && (
-        <div className="mx-4 mt-4 bg-white rounded-2xl p-4 shadow-sm">
-          <h3 className="font-bold text-sm mb-3">Fournisseur</h3>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-xl">
-                🏪
-              </div>
-              <div>
-                <p className="font-semibold text-sm">{order.supplier.business_name}</p>
-                <p className="text-xs text-gray-500">{order.supplier.address || order.supplier.business_type}</p>
-                {order.supplier.owner_phone && (
-                  <p className="text-xs text-gray-400">{order.supplier.owner_phone}</p>
-                )}
-              </div>
-            </div>
-            {order.supplier.owner_phone && (
-              <a href={`tel:${order.supplier.owner_phone}`} className="p-2 bg-orange-50 rounded-full text-orange-600">
-                <FiPhone size={18} />
-              </a>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Order details */}
       <div className="mx-4 mt-4 bg-white rounded-2xl p-4 shadow-sm">
         <h3 className="font-bold text-sm mb-3">Détail de la commande</h3>
