@@ -5,20 +5,24 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocationStore } from '@/stores/locationStore';
 import Link from 'next/link';
-import { FiSearch, FiMapPin, FiShoppingCart, FiUser, FiHome, FiClock } from 'react-icons/fi';
+import { FiSearch, FiMapPin, FiShoppingCart, FiUser, FiHome, FiClock, FiChevronDown } from 'react-icons/fi';
 import CategoryGrid from '@/components/home/CategoryGrid';
 import NearbySuppliers from '@/components/home/NearbySuppliers';
 import PromoBar from '@/components/home/PromoBar';
+import AddressModal from '@/components/AddressModal';
 
 export default function HomePage() {
   const router = useRouter();
   const { user, token, loadUser } = useAuthStore();
   const { address, detectLocation } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddressModal, setShowAddressModal] = useState(false);
 
   useEffect(() => {
     if (token) loadUser();
-    detectLocation();
+    // Only auto-detect if no saved location
+    const { latitude } = useLocationStore.getState();
+    if (!latitude) detectLocation();
   }, []);
 
   const handleSearch = (e) => {
@@ -36,16 +40,17 @@ export default function HomePage() {
           {/* Location */}
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => router.push('/location')}
+              onClick={() => setShowAddressModal(true)}
               className="flex items-center gap-2 text-sm"
             >
               <FiMapPin className="text-white/80" />
-              <div>
+              <div className="text-left">
                 <p className="text-xs text-white/70">Livrer à</p>
                 <p className="font-semibold text-sm truncate max-w-[200px]">
                   {address || 'Bukavu, RDC'}
                 </p>
               </div>
+              <FiChevronDown className="text-white/60" size={14} />
             </button>
             <Link href={token ? '/profile' : '/auth/login'} className="p-2 bg-white/20 rounded-full">
               <FiUser size={20} />
@@ -125,6 +130,9 @@ export default function HomePage() {
           <NavItem href="/profile" icon={<FiUser size={22} />} label="Profil" />
         </div>
       </nav>
+
+      {/* Address Modal */}
+      <AddressModal isOpen={showAddressModal} onClose={() => setShowAddressModal(false)} />
     </div>
   );
 }

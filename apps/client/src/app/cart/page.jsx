@@ -8,7 +8,8 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
-import { FiArrowLeft, FiPlus, FiMinus, FiTrash2, FiMapPin } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiMinus, FiTrash2, FiMapPin, FiEdit2 } from 'react-icons/fi';
+import AddressModal from '@/components/AddressModal';
 
 const UNIT_SHORT = { piece: 'pce', kg: 'kg', g: 'g', L: 'L', mL: 'mL', m: 'm', pack: 'paq' };
 const formatQty = (qty, unit) => {
@@ -19,10 +20,11 @@ const formatQty = (qty, unit) => {
 export default function CartPage() {
   const router = useRouter();
   const { items, supplierId, supplierName, removeItem, clearCart, incrementItem, decrementItem } = useCartStore();
-  const { latitude, longitude, address } = useLocationStore();
+  const { latitude, longitude, address, details } = useLocationStore();
   const { token } = useAuthStore();
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(null);
 
   const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.promo_price || item.price) * item.quantity), 0);
@@ -67,6 +69,7 @@ export default function CartPage() {
         delivery_lat: latitude,
         delivery_lng: longitude,
         delivery_address: address || 'Repère GPS',
+        delivery_details: details ? JSON.stringify(details) : null,
         notes,
       };
 
@@ -153,11 +156,19 @@ export default function CartPage() {
       {/* Delivery Address */}
       <div className="px-4 mt-4">
         <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <FiMapPin className="text-primary-500" />
-            <h3 className="font-semibold text-sm">Adresse de livraison</h3>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FiMapPin className="text-primary-500" />
+              <h3 className="font-semibold text-sm">Adresse de livraison</h3>
+            </div>
+            <button onClick={() => setShowAddressModal(true)} className="text-primary-500 p-1">
+              <FiEdit2 size={16} />
+            </button>
           </div>
-          <p className="text-sm text-gray-600">{address || 'Position GPS détectée'}</p>
+          <p className="text-sm text-gray-800 font-medium">{address || 'Position GPS détectée'}</p>
+          {details?.reference && (
+            <p className="text-xs text-gray-400 mt-1">Repère : {details.reference}</p>
+          )}
         </div>
       </div>
 
@@ -188,6 +199,9 @@ export default function CartPage() {
           {loading ? 'Traitement...' : `Commander - ${Math.round(total)} CDF`}
         </button>
       </div>
+
+      {/* Address Modal */}
+      <AddressModal isOpen={showAddressModal} onClose={() => setShowAddressModal(false)} />
     </div>
   );
 }
