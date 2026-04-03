@@ -9,9 +9,9 @@ const useAuthStore = create((set) => ({
   login: async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     if (data.data.user.role !== 'admin') throw new Error('Accès administrateur requis');
-    localStorage.setItem('admin_token', data.data.token);
+    localStorage.setItem('admin_token', data.data.accessToken);
     localStorage.setItem('admin_refresh_token', data.data.refreshToken);
-    set({ user: data.data.user, isAuthenticated: true });
+    set({ user: data.data.user, isAuthenticated: true, loading: false });
     return data.data;
   },
 

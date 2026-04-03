@@ -10,9 +10,9 @@ const useAuthStore = create((set) => ({
   login: async (phone, password) => {
     const { data } = await api.post('/auth/login', { phone, password });
     if (data.data.user.role !== 'driver') throw new Error('Compte livreur requis');
-    localStorage.setItem('driver_token', data.data.token);
+    localStorage.setItem('driver_token', data.data.accessToken);
     localStorage.setItem('driver_refresh_token', data.data.refreshToken);
-    set({ user: data.data.user, isAuthenticated: true });
+    set({ user: data.data.user, isAuthenticated: true, loading: false });
     return data.data;
   },
 

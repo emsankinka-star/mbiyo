@@ -21,9 +21,9 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('driver_refresh_token');
         const { data } = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
-        localStorage.setItem('driver_token', data.data.token);
+        localStorage.setItem('driver_token', data.data.accessToken);
         localStorage.setItem('driver_refresh_token', data.data.refreshToken);
-        original.headers.Authorization = `Bearer ${data.data.token}`;
+        original.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return api(original);
       } catch {
         localStorage.removeItem('driver_token');
