@@ -1,7 +1,7 @@
 /**
  * Seed - Données initiales pour Mbiyo
  */
-const db = require('./index');
+const { db } = require('./index');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');

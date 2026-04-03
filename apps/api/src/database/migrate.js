@@ -1,7 +1,7 @@
 /**
  * Migration initiale - Création de toutes les tables Mbiyo
  */
-const db = require('./index');
+const { db } = require('./index');
 const logger = require('../utils/logger');
 
 async function migrate() {
