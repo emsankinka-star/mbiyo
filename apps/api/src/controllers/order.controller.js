@@ -39,8 +39,8 @@ const orderController = {
           return apiResponse(res, 400, null, `Produit indisponible: ${item.product_id}`);
         }
 
-        // Vérifier le stock
-        if (product.stock_quantity > 0 && product.stock_quantity < item.quantity) {
+        // Vérifier le stock (-1 = illimité)
+        if (product.stock_quantity !== -1 && product.stock_quantity < item.quantity) {
           await trx.rollback();
           return apiResponse(res, 400, null, `Stock insuffisant pour: ${product.name}`);
         }
@@ -60,8 +60,8 @@ const orderController = {
           special_instructions: item.special_instructions,
         });
 
-        // Décrémenter le stock
-        if (product.stock_quantity > 0) {
+        // Décrémenter le stock (-1 = illimité, skip)
+        if (product.stock_quantity !== -1) {
           await trx('products').where('id', product.id).decrement('stock_quantity', item.quantity);
         }
       }
@@ -207,7 +207,10 @@ const orderController = {
    */
   async accept(req, res) {
     try {
-      const order = await db('orders').where('id', req.params.id).where('status', 'pending').first();
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      if (!supplier) return apiResponse(res, 403, null, 'Profil fournisseur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('status', 'pending').where('supplier_id', supplier.id).first();
       if (!order) return apiResponse(res, 404, null, 'Commande non trouvée ou déjà traitée');
 
       const [updated] = await db('orders').where('id', order.id)
@@ -225,6 +228,12 @@ const orderController = {
         type: 'order', data: { order_id: order.id },
       });
 
+      // Notify supplier
+      const supplier = await db('suppliers').where('id', order.supplier_id).first();
+      io.to(`supplier_${supplier.user_id}`).emit('order_update', {
+        order_id: order.id, status: 'accepted',
+      });
+
       return apiResponse(res, 200, updated, 'Commande acceptée');
     } catch (error) {
       return apiResponse(res, 500, null, 'Erreur serveur');
@@ -236,8 +245,14 @@ const orderController = {
    */
   async reject(req, res) {
     try {
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      if (!supplier) return apiResponse(res, 403, null, 'Profil fournisseur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('supplier_id', supplier.id).whereIn('status', ['pending', 'accepted']).first();
+      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée');
+
       const { reason } = req.body;
-      const [updated] = await db('orders').where('id', req.params.id)
+      const [updated] = await db('orders').where('id', order.id)
         .update({ status: 'cancelled', cancelled_at: new Date(), cancellation_reason: reason || 'Refusé par le fournisseur' })
         .returning('*');
 
@@ -258,7 +273,13 @@ const orderController = {
    */
   async markPreparing(req, res) {
     try {
-      const [updated] = await db('orders').where('id', req.params.id)
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      if (!supplier) return apiResponse(res, 403, null, 'Profil fournisseur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('supplier_id', supplier.id).where('status', 'accepted').first();
+      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée ou statut invalide');
+
+      const [updated] = await db('orders').where('id', order.id)
         .update({ status: 'preparing' }).returning('*');
 
       const io = getIO();
@@ -277,7 +298,13 @@ const orderController = {
    */
   async markReady(req, res) {
     try {
-      const [updated] = await db('orders').where('id', req.params.id)
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      if (!supplier) return apiResponse(res, 403, null, 'Profil fournisseur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('supplier_id', supplier.id).where('status', 'preparing').first();
+      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée ou statut invalide');
+
+      const [updated] = await db('orders').where('id', order.id)
         .update({ status: 'ready', prepared_at: new Date() }).returning('*');
 
       // Trouver les livreurs les plus proches
@@ -332,7 +359,7 @@ const orderController = {
       }
 
       const [updated] = await db('orders').where('id', order.id)
-        .update({ driver_id: driver.id, status: 'picked_up' }).returning('*');
+        .update({ driver_id: driver.id, status: 'assigned' }).returning('*');
 
       await db('drivers').where('id', driver.id).update({ is_busy: true });
 
@@ -340,14 +367,14 @@ const orderController = {
       // Notifier client
       io.to(`user_${order.client_id}`).emit('order_update', {
         order_id: order.id,
-        status: 'picked_up',
+        status: 'assigned',
         driver: { id: driver.id, user_id: driver.user_id },
       });
 
       // Notifier fournisseur
       const supplier = await db('suppliers').where('id', order.supplier_id).first();
       io.to(`supplier_${supplier.user_id}`).emit('order_update', {
-        order_id: order.id, status: 'picked_up',
+        order_id: order.id, status: 'assigned',
       });
 
       // Annuler la course pour les autres livreurs
@@ -364,7 +391,13 @@ const orderController = {
    */
   async markPickedUp(req, res) {
     try {
-      const [updated] = await db('orders').where('id', req.params.id)
+      const driver = await db('drivers').where('user_id', req.user.id).first();
+      if (!driver) return apiResponse(res, 403, null, 'Profil livreur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('driver_id', driver.id).where('status', 'assigned').first();
+      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée ou statut invalide');
+
+      const [updated] = await db('orders').where('id', order.id)
         .update({ status: 'picked_up', picked_up_at: new Date() }).returning('*');
 
       const io = getIO();
@@ -384,7 +417,13 @@ const orderController = {
    */
   async markDelivering(req, res) {
     try {
-      const [updated] = await db('orders').where('id', req.params.id)
+      const driver = await db('drivers').where('user_id', req.user.id).first();
+      if (!driver) return apiResponse(res, 403, null, 'Profil livreur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('driver_id', driver.id).where('status', 'picked_up').first();
+      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée ou statut invalide');
+
+      const [updated] = await db('orders').where('id', order.id)
         .update({ status: 'delivering' }).returning('*');
 
       const io = getIO();
@@ -404,8 +443,11 @@ const orderController = {
    */
   async markDelivered(req, res) {
     try {
-      const order = await db('orders').where('id', req.params.id).first();
-      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée');
+      const driver = await db('drivers').where('user_id', req.user.id).first();
+      if (!driver) return apiResponse(res, 403, null, 'Profil livreur requis');
+
+      const order = await db('orders').where('id', req.params.id).where('driver_id', driver.id).where('status', 'delivering').first();
+      if (!order) return apiResponse(res, 404, null, 'Commande non trouvée ou statut invalide');
 
       const [updated] = await db('orders').where('id', order.id)
         .update({ status: 'delivered', delivered_at: new Date() }).returning('*');

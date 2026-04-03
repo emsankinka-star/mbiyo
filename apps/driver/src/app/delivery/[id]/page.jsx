@@ -9,7 +9,7 @@ import api from '../../../lib/api';
 import { FiPhone, FiMapPin, FiNavigation, FiCheck, FiPackage, FiArrowLeft } from 'react-icons/fi';
 
 const STATUS_STEPS = [
-  { key: 'accepted_by_driver', label: 'Commande acceptée', icon: FiCheck },
+  { key: 'assigned', label: 'Commande acceptée', icon: FiCheck },
   { key: 'picked_up', label: 'Récupérée', icon: FiPackage },
   { key: 'delivering', label: 'En route', icon: FiNavigation },
   { key: 'delivered', label: 'Livrée', icon: FiCheck },
@@ -41,13 +41,13 @@ export default function DeliveryPage() {
 
   // Live GPS tracking
   useEffect(() => {
-    if (order && ['accepted_by_driver', 'picked_up', 'delivering'].includes(order.status)) {
+    if (order && ['assigned', 'picked_up', 'delivering'].includes(order.status)) {
       if ('geolocation' in navigator) {
         watchId.current = navigator.geolocation.watchPosition(
           (pos) => {
             const socket = getSocket();
             if (socket) socket.emit('driver:location_update', {
-              latitude: pos.coords.latitude, longitude: pos.coords.longitude, orderId: id,
+              latitude: pos.coords.latitude, longitude: pos.coords.longitude, order_id: id,
             });
           },
           null, { enableHighAccuracy: true, maximumAge: 5000 }
@@ -85,7 +85,7 @@ export default function DeliveryPage() {
     if (!order) return null;
     switch (order.status) {
       case 'ready': return { action: 'accept', label: 'Accepter la livraison', color: 'bg-blue-600' };
-      case 'accepted_by_driver': return { action: 'picked-up', label: 'Commande récupérée', color: 'bg-orange-500' };
+      case 'assigned': return { action: 'picked-up', label: 'Commande récupérée', color: 'bg-orange-500' };
       case 'picked_up': return { action: 'delivering', label: 'En route vers le client', color: 'bg-blue-600' };
       case 'delivering': return { action: 'delivered', label: 'Confirmer la livraison', color: 'bg-green-600' };
       default: return null;

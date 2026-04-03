@@ -11,7 +11,8 @@ const useDriverStore = create((set, get) => ({
   loading: false,
 
   toggleOnline: async () => {
-    const { data } = await api.put('/drivers/toggle-online');
+    const newStatus = !get().isOnline;
+    const { data } = await api.put('/drivers/me/status', { is_online: newStatus });
     const online = data.data.is_online;
     set({ isOnline: online });
     const socket = getSocket();
@@ -31,7 +32,7 @@ const useDriverStore = create((set, get) => ({
   },
 
   acceptDelivery: async (orderId) => {
-    const { data } = await api.put(`/orders/${orderId}/accept-delivery`);
+    const { data } = await api.post(`/orders/${orderId}/accept-delivery`);
     set({ activeDelivery: data.data });
     get().fetchAvailableOrders();
     return data.data;
@@ -39,7 +40,7 @@ const useDriverStore = create((set, get) => ({
 
   updateDeliveryStatus: async (orderId, status) => {
     const endpoint = `/orders/${orderId}/${status}`;
-    const { data } = await api.put(endpoint);
+    const { data } = await api.patch(endpoint);
     if (status === 'delivered') {
       set({ activeDelivery: null });
     } else {
@@ -49,17 +50,17 @@ const useDriverStore = create((set, get) => ({
   },
 
   fetchEarnings: async () => {
-    const { data } = await api.get('/drivers/earnings');
+    const { data } = await api.get('/drivers/me/earnings');
     set({ earnings: data.data });
   },
 
   fetchStats: async () => {
-    const { data } = await api.get('/drivers/stats');
+    const { data } = await api.get('/drivers/me/stats');
     set({ stats: data.data });
   },
 
   updateLocation: async (lat, lng) => {
-    await api.put('/drivers/location', { latitude: lat, longitude: lng });
+    await api.put('/drivers/me/location', { latitude: lat, longitude: lng });
     const socket = getSocket();
     if (socket) socket.emit('driver:location_update', { latitude: lat, longitude: lng });
   },

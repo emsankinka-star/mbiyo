@@ -25,7 +25,7 @@ export default function UsersPage() {
 
   const toggleStatus = async (userId) => {
     try {
-      await api.put(`/admin/users/${userId}/toggle-status`);
+      await api.patch(`/users/${userId}/status`, { is_active: !users.find(u => u.id === userId)?.is_active });
       toast.success('Statut mis à jour');
       fetchUsers();
     } catch { toast.error('Erreur'); }

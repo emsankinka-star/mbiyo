@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiArrowLeft, FiPlus, FiMinus, FiTrash2, FiMapPin } from 'react-icons/fi';
 
 export default function CartPage() {
@@ -34,7 +34,8 @@ export default function CartPage() {
     } catch { }
   };
 
-  useState(() => { estimateDelivery(); }, [latitude, longitude, supplierId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { estimateDelivery(); }, [latitude, longitude, supplierId]);
 
   const handleOrder = async () => {
     if (!token) {

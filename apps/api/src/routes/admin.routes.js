@@ -40,6 +40,18 @@ router.get('/users', authenticate, authorize('admin'), async (req, res) => {
 // ==========================================
 // VALIDATION DES LIVREURS
 // ==========================================
+router.get('/drivers', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const drivers = await db('drivers')
+      .join('users', 'drivers.user_id', 'users.id')
+      .select('drivers.*', 'users.full_name', 'users.phone', 'users.email')
+      .orderBy('drivers.created_at', 'desc');
+    return apiResponse(res, 200, drivers);
+  } catch (error) {
+    return apiResponse(res, 500, null, 'Erreur serveur');
+  }
+});
+
 router.get('/drivers/pending', authenticate, authorize('admin'), async (req, res) => {
   try {
     const drivers = await db('drivers')
@@ -78,6 +90,18 @@ router.patch('/drivers/:id/validate', authenticate, authorize('admin'), async (r
 // ==========================================
 // VALIDATION DES FOURNISSEURS
 // ==========================================
+router.get('/suppliers', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const suppliers = await db('suppliers')
+      .join('users', 'suppliers.user_id', 'users.id')
+      .select('suppliers.*', 'users.full_name', 'users.phone', 'users.email')
+      .orderBy('suppliers.created_at', 'desc');
+    return apiResponse(res, 200, suppliers);
+  } catch (error) {
+    return apiResponse(res, 500, null, 'Erreur serveur');
+  }
+});
+
 router.get('/suppliers/pending', authenticate, authorize('admin'), async (req, res) => {
   try {
     const suppliers = await db('suppliers')
@@ -177,6 +201,27 @@ router.get('/stats', authenticate, authorize('admin'), async (req, res) => {
       .groupByRaw('DATE(created_at)')
       .orderBy('date', 'asc');
 
+    // Commandes par statut
+    const [pendingOrders] = await db('orders').where('status', 'pending').count('* as count');
+    const [activeOrders] = await db('orders').whereIn('status', ['accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'delivering']).count('* as count');
+    const [cancelledOrders] = await db('orders').where('status', 'cancelled').count('* as count');
+
+    // Top fournisseurs
+    const topSuppliers = await db('orders')
+      .join('suppliers', 'orders.supplier_id', 'suppliers.id')
+      .select('suppliers.business_name as name', db.raw('COUNT(*) as orders_count'), db.raw('SUM(orders.total) as revenue'))
+      .where('orders.status', 'delivered')
+      .groupBy('suppliers.id', 'suppliers.business_name')
+      .orderBy('revenue', 'desc')
+      .limit(5);
+
+    // Commandes récentes
+    const recentOrders = await db('orders')
+      .leftJoin('users', 'orders.client_id', 'users.id')
+      .select('orders.id', 'orders.order_number', 'orders.status', 'orders.total', 'orders.created_at', 'users.full_name as client_name')
+      .orderBy('orders.created_at', 'desc')
+      .limit(10);
+
     return apiResponse(res, 200, {
       users: {
         total: parseInt(totalUsers.count),
@@ -188,6 +233,9 @@ router.get('/stats', authenticate, authorize('admin'), async (req, res) => {
       orders: {
         total: parseInt(totalOrders.count),
         delivered: parseInt(deliveredOrders.count),
+        pending: parseInt(pendingOrders.count),
+        active: parseInt(activeOrders.count),
+        cancelled: parseInt(cancelledOrders.count),
         completion_rate: totalOrders.count > 0
           ? Math.round((deliveredOrders.count / totalOrders.count) * 100) : 0,
       },
@@ -197,6 +245,20 @@ router.get('/stats', authenticate, authorize('admin'), async (req, res) => {
         currency: 'CDF',
       },
       daily_orders: dailyOrders,
+      daily_revenue: dailyOrders.map(d => ({ date: d.date, amount: parseFloat(d.revenue) || 0 })),
+      recent_orders: recentOrders,
+      top_suppliers: topSuppliers,
+      // Flat aliases for frontend compatibility
+      total_users: parseInt(totalUsers.count),
+      total_drivers: parseInt(totalDrivers.count),
+      total_suppliers: parseInt(totalSuppliers.count),
+      total_orders: parseInt(totalOrders.count),
+      total_revenue: parseFloat(totalRevenue.amount) || 0,
+      total_commission: parseFloat(totalCommissions.amount) || 0,
+      pending_orders: parseInt(pendingOrders.count),
+      active_orders: parseInt(activeOrders.count),
+      delivered_orders: parseInt(deliveredOrders.count),
+      cancelled_orders: parseInt(cancelledOrders.count),
     });
   } catch (error) {
     return apiResponse(res, 500, null, 'Erreur serveur');
@@ -229,9 +291,33 @@ router.post('/delivery-zones', authenticate, authorize('admin'), async (req, res
 
 router.put('/delivery-zones/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
+    const { name, description, center_lat, center_lng, latitude, longitude, radius_km, base_fee, per_km_fee, fee_per_km, is_active } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (center_lat !== undefined) updates.center_lat = center_lat;
+    if (latitude !== undefined) updates.center_lat = latitude;
+    if (center_lng !== undefined) updates.center_lng = center_lng;
+    if (longitude !== undefined) updates.center_lng = longitude;
+    if (radius_km !== undefined) updates.radius_km = radius_km;
+    if (base_fee !== undefined) updates.base_fee = base_fee;
+    if (per_km_fee !== undefined) updates.per_km_fee = per_km_fee;
+    if (fee_per_km !== undefined) updates.per_km_fee = fee_per_km;
+    if (is_active !== undefined) updates.is_active = is_active;
+
     const [zone] = await db('delivery_zones').where('id', req.params.id)
-      .update(req.body).returning('*');
+      .update(updates).returning('*');
     return apiResponse(res, 200, zone);
+  } catch (error) {
+    return apiResponse(res, 500, null, 'Erreur serveur');
+  }
+});
+
+router.delete('/delivery-zones/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const deleted = await db('delivery_zones').where('id', req.params.id).del();
+    if (!deleted) return apiResponse(res, 404, null, 'Zone non trouvée');
+    return apiResponse(res, 200, null, 'Zone supprimée');
   } catch (error) {
     return apiResponse(res, 500, null, 'Erreur serveur');
   }

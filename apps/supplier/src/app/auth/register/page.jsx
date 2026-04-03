@@ -7,11 +7,10 @@ import { FiUser, FiPhone, FiLock, FiMapPin, FiShoppingBag, FiArrowRight } from '
 
 const BUSINESS_TYPES = [
   { value: 'restaurant', label: 'Restaurant' },
-  { value: 'supermarche', label: 'Supermarché' },
-  { value: 'pharmacie', label: 'Pharmacie' },
-  { value: 'boulangerie', label: 'Boulangerie' },
-  { value: 'boutique', label: 'Boutique' },
-  { value: 'autre', label: 'Autre' },
+  { value: 'supermarket', label: 'Supermarché' },
+  { value: 'pharmacy', label: 'Pharmacie' },
+  { value: 'fuel', label: 'Station' },
+  { value: 'shop', label: 'Boutique' },
 ];
 
 export default function SupplierRegister() {

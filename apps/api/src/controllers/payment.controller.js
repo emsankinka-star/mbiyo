@@ -128,7 +128,7 @@ const paymentController = {
       const newStatus = status === 'success' ? 'completed' : 'failed';
       await db('payments').where('id', payment.id).update({
         status: newStatus,
-        metadata: JSON.stringify({ ...JSON.parse(payment.metadata || '{}'), webhook: req.body }),
+        metadata: JSON.stringify({ ...(typeof payment.metadata === 'string' ? JSON.parse(payment.metadata || '{}') : (payment.metadata || {})), webhook: req.body }),
       });
 
       if (newStatus === 'completed' && payment.type === 'client_payment') {

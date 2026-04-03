@@ -24,12 +24,11 @@ export default function DriverHome() {
       if (isOnline) fetchAvailableOrders();
       const socket = getSocket();
       if (socket) {
-        socket.on('order:new_available', () => fetchAvailableOrders());
-        socket.on('order:assigned', (data) => {
-          toast.success('Nouvelle livraison assignée !');
-          router.push(`/delivery/${data.orderId}`);
+        socket.on('new_delivery_request', () => fetchAvailableOrders());
+        socket.on('delivery_taken', (data) => {
+          fetchAvailableOrders();
         });
-        return () => { socket.off('order:new_available'); socket.off('order:assigned'); };
+        return () => { socket.off('new_delivery_request'); socket.off('delivery_taken'); };
       }
     }
   }, [isAuthenticated, isOnline]);

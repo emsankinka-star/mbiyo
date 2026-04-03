@@ -11,48 +11,54 @@ const useSupplierStore = create((set) => ({
     set({ loading: true });
     try {
       const params = status ? { status } : {};
-      const { data } = await api.get('/suppliers/orders', { params });
+      const { data } = await api.get('/suppliers/me/orders', { params });
       set({ orders: data.data || [] });
     } finally { set({ loading: false }); }
   },
 
   acceptOrder: async (orderId) => {
-    const { data } = await api.put(`/orders/${orderId}/accept`);
+    const { data } = await api.patch(`/orders/${orderId}/accept`);
     return data.data;
   },
 
   rejectOrder: async (orderId, reason) => {
-    const { data } = await api.put(`/orders/${orderId}/reject`, { reason });
+    const { data } = await api.patch(`/orders/${orderId}/reject`, { reason });
     return data.data;
   },
 
   markPreparing: async (orderId) => {
-    const { data } = await api.put(`/orders/${orderId}/preparing`);
+    const { data } = await api.patch(`/orders/${orderId}/preparing`);
     return data.data;
   },
 
   markReady: async (orderId) => {
-    const { data } = await api.put(`/orders/${orderId}/ready`);
+    const { data } = await api.patch(`/orders/${orderId}/ready`);
     return data.data;
   },
 
-  fetchProducts: async () => {
+  fetchProducts: async (supplierId) => {
     set({ loading: true });
     try {
-      const { data } = await api.get('/products', { params: { mine: true } });
-      set({ products: data.data || [] });
+      const params = supplierId ? { supplier_id: supplierId } : {};
+      const { data } = await api.get('/products', { params });
+      set({ products: data.data?.products || data.data || [] });
     } finally { set({ loading: false }); }
   },
 
-  createProduct: async (formData) => {
-    const { data } = await api.post('/products', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  createProduct: async (productData) => {
+    const { data } = await api.post('/products', productData);
     return data.data;
   },
 
-  updateProduct: async (id, formData) => {
-    const { data } = await api.put(`/products/${id}`, formData, {
+  updateProduct: async (id, productData) => {
+    const { data } = await api.put(`/products/${id}`, productData);
+    return data.data;
+  },
+
+  uploadProductImage: async (id, file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const { data } = await api.put(`/products/${id}/image`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return data.data;
@@ -63,17 +69,17 @@ const useSupplierStore = create((set) => ({
   },
 
   toggleProductAvailability: async (id) => {
-    const { data } = await api.put(`/products/${id}/toggle-availability`);
+    const { data } = await api.patch(`/products/${id}/availability`);
     return data.data;
   },
 
   fetchStats: async () => {
-    const { data } = await api.get('/suppliers/stats');
+    const { data } = await api.get('/suppliers/me/stats');
     set({ stats: data.data });
   },
 
   toggleOpen: async () => {
-    const { data } = await api.put('/suppliers/toggle-open');
+    const { data } = await api.put('/suppliers/me/status');
     return data.data;
   },
 }));

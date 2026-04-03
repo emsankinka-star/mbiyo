@@ -14,7 +14,7 @@ export default function HistoryPage() {
   useEffect(() => { loadUser(); }, []);
   useEffect(() => {
     if (isAuthenticated) {
-      api.get('/drivers/delivery-history').then(({ data }) => setDeliveries(data.data || []))
+      api.get('/drivers/me/deliveries').then(({ data }) => setDeliveries(data.data || []))
         .catch(() => {}).finally(() => setLoading(false));
     }
   }, [isAuthenticated]);

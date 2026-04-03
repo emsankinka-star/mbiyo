@@ -154,8 +154,10 @@ const productController = {
     try {
       if (!req.file) return apiResponse(res, 400, null, 'Image requise');
 
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
       // Supprimer l'ancienne image de Cloudinary
-      const existing = await db('products').where('id', req.params.id).first();
+      const existing = await db('products').where('id', req.params.id).where('supplier_id', supplier.id).first();
+      if (!existing) return apiResponse(res, 404, null, 'Produit non trouvé');
       if (existing?.image_url) await deleteFromCloudinary(existing.image_url);
 
       // Compresser et uploader vers Cloudinary
@@ -173,8 +175,12 @@ const productController = {
    */
   async toggleAvailability(req, res) {
     try {
-      const { is_available } = req.body;
-      const [product] = await db('products').where('id', req.params.id).update({ is_available }).returning('*');
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      const existing = await db('products').where('id', req.params.id).where('supplier_id', supplier.id).first();
+      if (!existing) return apiResponse(res, 404, null, 'Produit non trouvé');
+
+      const [product] = await db('products').where('id', req.params.id)
+        .update({ is_available: !existing.is_available }).returning('*');
       return apiResponse(res, 200, product);
     } catch (error) {
       return apiResponse(res, 500, null, 'Erreur serveur');
@@ -186,6 +192,10 @@ const productController = {
    */
   async updateStock(req, res) {
     try {
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      const existing = await db('products').where('id', req.params.id).where('supplier_id', supplier.id).first();
+      if (!existing) return apiResponse(res, 404, null, 'Produit non trouvé');
+
       const { stock_quantity } = req.body;
       const [product] = await db('products').where('id', req.params.id).update({ stock_quantity }).returning('*');
       return apiResponse(res, 200, product);

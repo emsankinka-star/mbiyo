@@ -12,8 +12,8 @@ export default function DriversPage() {
   const fetchDrivers = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/users', { params: { role: 'driver' } });
-      setDrivers(data.data.users || data.data || []);
+      const { data } = await api.get('/admin/drivers');
+      setDrivers(data.data || []);
     } catch {} finally { setLoading(false); }
   };
 
@@ -21,15 +21,15 @@ export default function DriversPage() {
 
   const handleValidate = async (driverId, approved) => {
     try {
-      await api.put(`/admin/drivers/${driverId}/validate`, { approved });
+      await api.patch(`/admin/drivers/${driverId}/validate`, { is_validated: approved });
       toast.success(approved ? 'Livreur validé !' : 'Livreur refusé');
       fetchDrivers();
     } catch { toast.error('Erreur'); }
   };
 
   const filtered = filter === 'all' ? drivers :
-    filter === 'pending' ? drivers.filter(d => d.verification_status === 'pending') :
-    filter === 'validated' ? drivers.filter(d => d.verification_status === 'approved') : drivers;
+    filter === 'pending' ? drivers.filter(d => !d.is_validated) :
+    filter === 'validated' ? drivers.filter(d => d.is_validated) : drivers;
 
   return (
     <div>
@@ -61,10 +61,9 @@ export default function DriversPage() {
                 </div>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                driver.verification_status === 'approved' ? 'bg-green-100 text-green-700' :
-                driver.verification_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-red-100 text-red-700'
-              }`}>{driver.verification_status === 'approved' ? 'Validé' : driver.verification_status === 'pending' ? 'En attente' : 'Refusé'}</span>
+                driver.is_validated ? 'bg-green-100 text-green-700' :
+                'bg-yellow-100 text-yellow-700'
+              }`}>{driver.is_validated ? 'Validé' : 'En attente'}</span>
             </div>
 
             <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
@@ -73,7 +72,7 @@ export default function DriversPage() {
               <span>{driver.total_deliveries || 0} livraisons</span>
             </div>
 
-            {driver.verification_status === 'pending' && (
+            {!driver.is_validated && (
               <div className="flex gap-2 mt-2">
                 <button onClick={() => handleValidate(driver.id, false)}
                   className="flex-1 py-2 rounded-xl border-2 border-red-200 text-red-500 text-sm font-medium flex items-center justify-center gap-1">

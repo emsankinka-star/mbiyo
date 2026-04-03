@@ -25,11 +25,11 @@ export default function SupplierHome() {
       fetchStats();
       const socket = getSocket();
       if (socket) {
-        socket.on('order:new', () => {
+        socket.on('new_order', () => {
           toast('🔔 Nouvelle commande !', { icon: '📦' });
           fetchOrders('pending');
         });
-        return () => socket.off('order:new');
+        return () => socket.off('new_order');
       }
     }
   }, [isAuthenticated]);

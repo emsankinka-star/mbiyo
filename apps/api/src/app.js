@@ -39,7 +39,7 @@ app.use(compression());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 500,
   message: { error: 'Trop de requêtes, réessayez plus tard.' },
 });
 app.use('/api/', limiter);

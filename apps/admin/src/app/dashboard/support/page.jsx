@@ -14,7 +14,7 @@ export default function SupportPage() {
   const fetchTickets = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/support-tickets', { params: { status: filter } });
+      const { data } = await api.get('/support', { params: { status: filter } });
       setTickets(data.data || []);
     } catch {} finally { setLoading(false); }
   };
@@ -35,7 +35,7 @@ export default function SupportPage() {
 
   const handleClose = async (ticketId) => {
     try {
-      await api.put(`/admin/support-tickets/${ticketId}`, { status: 'closed' });
+      await api.patch(`/support/${ticketId}`, { status: 'closed' });
       toast.success('Ticket fermé');
       fetchTickets();
       setSelected(null);

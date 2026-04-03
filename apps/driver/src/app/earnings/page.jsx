@@ -14,7 +14,7 @@ export default function EarningsPage() {
   useEffect(() => { loadUser(); }, []);
   useEffect(() => {
     if (isAuthenticated) {
-      api.get('/drivers/earnings').then(({ data }) => setEarnings(data.data)).catch(() => {});
+      api.get('/drivers/me/earnings').then(({ data }) => setEarnings(data.data)).catch(() => {});
     }
   }, [isAuthenticated]);
 

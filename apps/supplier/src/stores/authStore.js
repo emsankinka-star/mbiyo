@@ -17,9 +17,29 @@ const useAuthStore = create((set) => ({
   },
 
   register: async (formData) => {
-    const { data } = await api.post('/suppliers/register', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    // Step 1: Create user account
+    const { full_name, owner_name, phone, password, ...supplierData } = Object.fromEntries(
+      typeof formData.entries === 'function' ? formData.entries() : Object.entries(formData)
+    );
+    const registerRes = await api.post('/auth/register', {
+      full_name: full_name || owner_name,
+      phone,
+      password,
+      role: 'supplier',
     });
+    const { accessToken, refreshToken } = registerRes.data.data;
+    localStorage.setItem('supplier_token', accessToken);
+    localStorage.setItem('supplier_refresh_token', refreshToken);
+    set({ user: registerRes.data.data.user, isAuthenticated: true, loading: false });
+
+    // Step 2: Create supplier profile
+    const { data } = await api.post('/suppliers/register', {
+      business_name: supplierData.business_name,
+      business_type: supplierData.business_type,
+      address: supplierData.address,
+      description: supplierData.description,
+    });
+    set({ supplier: data.data });
     return data.data;
   },
 
@@ -36,7 +56,7 @@ const useAuthStore = create((set) => ({
 
   loadSupplierProfile: async () => {
     try {
-      const { data } = await api.get('/suppliers/profile');
+      const { data } = await api.get('/suppliers/me');
       set({ supplier: data.data });
     } catch {}
   },

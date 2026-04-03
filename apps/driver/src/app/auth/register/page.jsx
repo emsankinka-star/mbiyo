@@ -68,10 +68,10 @@ export default function DriverRegister() {
             <div>
               <label className="text-sm font-medium text-gray-600 block mb-1">Type de véhicule</label>
               <div className="grid grid-cols-3 gap-2">
-                {['moto', 'vélo', 'voiture'].map((t) => (
+                {['moto', 'velo', 'voiture'].map((t) => (
                   <button type="button" key={t} onClick={() => update('vehicle_type', t)}
                     className={`py-3 rounded-xl text-sm font-medium border-2 transition-colors capitalize ${form.vehicle_type === t ? 'border-blue-500 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500'}`}>
-                    {t}
+                    {t === 'velo' ? 'Vélo' : t}
                   </button>
                 ))}
               </div>

@@ -12,8 +12,8 @@ export default function SuppliersPage() {
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/admin/users', { params: { role: 'supplier' } });
-      setSuppliers(data.data.users || data.data || []);
+      const { data } = await api.get('/admin/suppliers');
+      setSuppliers(data.data || []);
     } catch {} finally { setLoading(false); }
   };
 
@@ -21,15 +21,15 @@ export default function SuppliersPage() {
 
   const handleValidate = async (supplierId, approved) => {
     try {
-      await api.put(`/admin/suppliers/${supplierId}/validate`, { approved });
+      await api.patch(`/admin/suppliers/${supplierId}/validate`, { is_validated: approved });
       toast.success(approved ? 'Fournisseur validé !' : 'Fournisseur refusé');
       fetchSuppliers();
     } catch { toast.error('Erreur'); }
   };
 
   const filtered = filter === 'all' ? suppliers :
-    filter === 'pending' ? suppliers.filter(s => s.verification_status === 'pending') :
-    suppliers.filter(s => s.verification_status === 'approved');
+    filter === 'pending' ? suppliers.filter(s => !s.is_validated) :
+    suppliers.filter(s => s.is_validated);
 
   return (
     <div>
@@ -61,10 +61,9 @@ export default function SuppliersPage() {
                 </div>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                supplier.verification_status === 'approved' ? 'bg-green-100 text-green-700' :
-                supplier.verification_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-red-100 text-red-700'
-              }`}>{supplier.verification_status === 'approved' ? 'Validé' : supplier.verification_status === 'pending' ? 'En attente' : 'Refusé'}</span>
+                supplier.is_validated ? 'bg-green-100 text-green-700' :
+                'bg-yellow-100 text-yellow-700'
+              }`}>{supplier.is_validated ? 'Validé' : 'En attente'}</span>
             </div>
 
             <div className="space-y-1 text-sm text-gray-500 mb-3">
@@ -73,7 +72,7 @@ export default function SuppliersPage() {
               <div className="flex items-center gap-1"><FiStar size={12} className="text-yellow-500" /> {supplier.rating || '—'}</div>
             </div>
 
-            {supplier.verification_status === 'pending' && (
+            {!supplier.is_validated && (
               <div className="flex gap-2">
                 <button onClick={() => handleValidate(supplier.id, false)}
                   className="flex-1 py-2 rounded-xl border-2 border-red-200 text-red-500 text-sm font-medium flex items-center justify-center gap-1">
