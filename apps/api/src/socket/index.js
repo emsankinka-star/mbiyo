@@ -5,9 +5,11 @@ const logger = require('../utils/logger');
 let io = null;
 
 function initializeSocket(httpServer) {
+  const corsOriginsEnv = process.env.CORS_ORIGINS || '*';
+  const corsOrigins = corsOriginsEnv === '*' ? '*' : corsOriginsEnv.split(',').filter(Boolean);
   io = new Server(httpServer, {
     cors: {
-      origin: (process.env.CORS_ORIGINS || '').split(',').filter(Boolean),
+      origin: corsOrigins,
       methods: ['GET', 'POST'],
       credentials: true,
     },

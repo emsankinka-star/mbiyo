@@ -26,9 +26,10 @@ const app = express();
 app.use(helmet());
 
 // CORS
-const corsOrigins = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean);
+const corsOriginsEnv = process.env.CORS_ORIGINS || '*';
+const corsOrigins = corsOriginsEnv === '*' ? '*' : corsOriginsEnv.split(',').filter(Boolean);
 app.use(cors({
-  origin: corsOrigins.length > 0 ? corsOrigins : '*',
+  origin: corsOrigins,
   credentials: true,
 }));
 
