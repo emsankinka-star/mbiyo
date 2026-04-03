@@ -1,11 +1,23 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { FiSearch, FiArrowLeft } from 'react-icons/fi';
 
 export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
+  );
+}
+
+function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');

@@ -5,13 +5,14 @@ export const metadata = {
   title: 'Mbiyo - Livraison rapide à Bukavu',
   description: 'Commandez nourriture, médicaments, carburant et plus. Livraison rapide à Bukavu, RDC.',
   manifest: '/manifest.json',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: '#F97316',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
 };
 
 export default function RootLayout({ children }) {
