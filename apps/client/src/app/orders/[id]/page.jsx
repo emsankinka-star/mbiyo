@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { getSocket, connectSocket } from '@/lib/socket';
@@ -20,19 +20,33 @@ const statusSteps = [
 
 export default function OrderTrackingPage() {
   const { id } = useParams();
+  const router = useRouter();
   const { token } = useAuthStore();
   const [order, setOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     fetchOrder();
     setupSocket();
     return () => {
       const socket = getSocket();
-      if (socket) socket.emit('order:untrack', { order_id: id });
+      if (socket) {
+        socket.emit('order:untrack', { order_id: id });
+        socket.off('chat:message');
+      }
     };
   }, [id]);
+
+  // Fetch unread chat count
+  useEffect(() => {
+    if (order?.driver) {
+      api.get(`/chat/${id}/unread`).then(({ data }) => {
+        setUnreadCount(data.data?.unread || 0);
+      }).catch(() => {});
+    }
+  }, [order?.driver, id]);
 
   async function fetchOrder() {
     try {
@@ -59,6 +73,12 @@ export default function OrderTrackingPage() {
 
     socket.on('driver:location', (data) => {
       setDriverLocation({ lat: data.latitude, lng: data.longitude });
+    });
+
+    socket.on('chat:message', (data) => {
+      if (data.order_id === id) {
+        setUnreadCount((prev) => prev + 1);
+      }
     });
   }
 
@@ -151,8 +171,13 @@ export default function OrderTrackingPage() {
               <a href={`tel:${order.driver.phone}`} className="p-2 bg-green-50 rounded-full text-green-600">
                 <FiPhone size={18} />
               </a>
-              <button className="p-2 bg-blue-50 rounded-full text-blue-600">
+              <button onClick={() => router.push(`/chat/${id}`)} className="p-2 bg-blue-50 rounded-full text-blue-600 relative">
                 <FiMessageCircle size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
             </div>
           </div>

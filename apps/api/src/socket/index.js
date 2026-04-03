@@ -106,13 +106,32 @@ function initializeSocket(httpServer) {
     // CHAT / SUPPORT
     // ============================
 
-    socket.on('chat:message', (data) => {
+    socket.on('chat:message', async (data) => {
       const { to_user_id, message, order_id } = data;
+
+      // Persister le message en base
+      try {
+        const { db } = require('../database');
+        await db('messages').insert({
+          order_id,
+          sender_id: user.id,
+          receiver_id: to_user_id,
+          content: message,
+        });
+      } catch (err) {
+        logger.error('Erreur persistance chat:', err.message);
+      }
+
+      // Relayer au destinataire
       io.to(`user_${to_user_id}`).emit('chat:message', {
         from_user_id: user.id,
+        sender_id: user.id,
+        receiver_id: to_user_id,
+        content: message,
         message,
         order_id,
         timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString(),
       });
     });
 

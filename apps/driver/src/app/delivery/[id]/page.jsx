@@ -6,7 +6,7 @@ import useDriverStore from '../../../stores/driverStore';
 import { getSocket } from '../../../lib/socket';
 import toast from 'react-hot-toast';
 import api from '../../../lib/api';
-import { FiPhone, FiMapPin, FiNavigation, FiCheck, FiPackage, FiArrowLeft } from 'react-icons/fi';
+import { FiPhone, FiMapPin, FiNavigation, FiCheck, FiPackage, FiArrowLeft, FiMessageCircle } from 'react-icons/fi';
 
 const STATUS_STEPS = [
   { key: 'assigned', label: 'Commande acceptée', icon: FiCheck },
@@ -169,9 +169,14 @@ export default function DeliveryPage() {
               {order?.notes && <p className="text-xs text-gray-400 mt-1">Note : {order.notes}</p>}
             </div>
             {order?.client_phone && (
-              <a href={`tel:${order.client_phone}`} className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <FiPhone className="text-blue-600" />
-              </a>
+              <div className="flex flex-col gap-2">
+                <a href={`tel:${order.client_phone}`} className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <FiPhone className="text-blue-600" />
+                </a>
+                <button onClick={() => router.push(`/chat/${id}`)} className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <FiMessageCircle className="text-green-600" />
+                </button>
+              </div>
             )}
           </div>
         </div>

@@ -18,6 +18,7 @@ const adminRoutes = require('./routes/admin.routes');
 const reviewRoutes = require('./routes/review.routes');
 const supportRoutes = require('./routes/support.routes');
 const deliveryZoneRoutes = require('./routes/deliveryZone.routes');
+const chatRoutes = require('./routes/chat.routes');
 const { errorHandler, notFound } = require('./middleware/error.middleware');
 
 const app = express();
@@ -81,6 +82,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/delivery-zones', deliveryZoneRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Gestion des erreurs
 app.use(notFound);

@@ -282,6 +282,19 @@ async function migrate() {
     });
 
     // ==========================================
+    // TABLE: messages (chat client <-> livreur)
+    // ==========================================
+    await db.schema.createTableIfNotExists('messages', (table) => {
+      table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
+      table.uuid('order_id').references('id').inTable('orders').onDelete('CASCADE').notNullable();
+      table.uuid('sender_id').references('id').inTable('users').onDelete('SET NULL').notNullable();
+      table.uuid('receiver_id').references('id').inTable('users').onDelete('SET NULL').notNullable();
+      table.text('content').notNullable();
+      table.boolean('is_read').defaultTo(false);
+      table.timestamps(true, true);
+    });
+
+    // ==========================================
     // INDEXES
     // ==========================================
     await db.raw('CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)');
@@ -296,6 +309,8 @@ async function migrate() {
     await db.raw('CREATE INDEX IF NOT EXISTS idx_drivers_online ON drivers(is_online, is_validated, is_busy)');
     await db.raw('CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id)');
     await db.raw('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_messages_order ON messages(order_id, created_at)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id, is_read)');
 
     // ==========================================
     // ALTER existing tables (idempotent)
