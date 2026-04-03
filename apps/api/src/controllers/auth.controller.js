@@ -80,10 +80,16 @@ const authController = {
         return apiResponse(res, 400, errors.array(), 'Données invalides');
       }
 
-      const { phone, password } = req.body;
+      const { phone, email, password } = req.body;
 
-      // Trouver l'utilisateur
-      const user = await db('users').where('phone', phone).first();
+      if (!phone && !email) {
+        return apiResponse(res, 400, null, 'Téléphone ou email requis');
+      }
+
+      // Trouver l'utilisateur par téléphone ou email
+      const user = phone
+        ? await db('users').where('phone', phone).first()
+        : await db('users').where('email', email).first();
       if (!user) {
         return apiResponse(res, 401, null, 'Identifiants incorrects');
       }

@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '../../stores/authStore';
 import toast from 'react-hot-toast';
-import { FiLock, FiPhone, FiArrowRight } from 'react-icons/fi';
+import { FiLock, FiArrowRight } from 'react-icons/fi';
 
 export default function AdminLogin() {
   const router = useRouter();
   const { login } = useAuthStore();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(phone, password);
+      await login(email, password);
       toast.success('Bienvenue, administrateur !');
       router.replace('/dashboard');
     } catch (err) {
@@ -33,10 +33,10 @@ export default function AdminLogin() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-600 mb-1 block">Téléphone</label>
+            <label className="text-sm font-medium text-gray-600 mb-1 block">Email</label>
             <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-primary-500">
-              <FiPhone className="text-gray-400 mr-3" />
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243..." className="flex-1 outline-none text-sm" required />
+              <FiLock className="text-gray-400 mr-3" />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@mbiyo.cd" className="flex-1 outline-none text-sm" required />
             </div>
           </div>
           <div>

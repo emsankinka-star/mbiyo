@@ -12,7 +12,8 @@ const registerValidation = [
 ];
 
 const loginValidation = [
-  body('phone').trim().notEmpty().withMessage('Téléphone requis'),
+  body('phone').optional().trim(),
+  body('email').optional().trim().isEmail().withMessage('Email invalide'),
   body('password').notEmpty().withMessage('Mot de passe requis'),
 ];
 
