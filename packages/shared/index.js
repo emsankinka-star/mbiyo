@@ -1,1 +1,1 @@
-export { ORDER_STATUS, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS, BUSINESS_TYPES, USER_ROLES, API_URL, WS_URL, DEFAULT_LOCATION, MAPBOX_STYLE } from './constants';
+module.exports = require('./constants');

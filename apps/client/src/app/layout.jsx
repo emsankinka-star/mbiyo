@@ -1,5 +1,5 @@
 import './globals.css';
-import { Toaster } from 'react-hot-toast';
+import ToastProvider from '../components/ToastProvider';
 
 export const metadata = {
   title: 'Mbiyo - Livraison rapide à Bukavu',
@@ -23,13 +23,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className="bg-gray-50 min-h-screen">
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            duration: 3000,
-            style: { borderRadius: '12px', padding: '12px 16px', fontSize: '14px' },
-          }}
-        />
+        <ToastProvider />
         {children}
       </body>
     </html>

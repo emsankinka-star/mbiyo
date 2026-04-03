@@ -2,10 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost', 'api.mbiyo.cd'],
+    domains: ['localhost', 'api.mbiyo.cd', 'mbiyo-production.up.railway.app'],
     unoptimized: true,
   },
-  // Optimisation pour connexions lentes
   compress: true,
   poweredByHeader: false,
 };

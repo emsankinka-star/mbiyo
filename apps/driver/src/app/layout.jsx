@@ -1,5 +1,5 @@
 import './globals.css';
-import { Toaster } from 'react-hot-toast';
+import ToastProvider from '../components/ToastProvider';
 
 export const metadata = {
   title: 'Mbiyo Livreur',
@@ -16,7 +16,7 @@ export default function RootLayout({ children }) {
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
       </head>
       <body className="bg-gray-50 text-gray-900 antialiased">
-        <Toaster position="top-center" toastOptions={{ duration: 3000, style: { borderRadius: '12px', padding: '12px 16px', fontSize: '14px' } }} />
+        <ToastProvider />
         <main className="min-h-screen max-w-lg mx-auto">{children}</main>
       </body>
     </html>
