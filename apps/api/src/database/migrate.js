@@ -12,12 +12,11 @@ async function migrate() {
 
     // Extension UUID
     await db.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
-    await db.raw('CREATE EXTENSION IF NOT EXISTS "postgis"');
 
     // ==========================================
     // TABLE: users
     // ==========================================
-    await db.schema.createTable('users', (table) => {
+    await db.schema.createTableIfNotExists('users', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.string('email').unique();
       table.string('phone', 20).unique();
@@ -38,7 +37,7 @@ async function migrate() {
     // ==========================================
     // TABLE: suppliers
     // ==========================================
-    await db.schema.createTable('suppliers', (table) => {
+    await db.schema.createTableIfNotExists('suppliers', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('user_id').references('id').inTable('users').onDelete('CASCADE').notNullable();
       table.string('business_name').notNullable();
@@ -63,7 +62,7 @@ async function migrate() {
     // ==========================================
     // TABLE: drivers
     // ==========================================
-    await db.schema.createTable('drivers', (table) => {
+    await db.schema.createTableIfNotExists('drivers', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('user_id').references('id').inTable('users').onDelete('CASCADE').notNullable();
       table.string('vehicle_type').defaultTo('moto');
@@ -87,7 +86,7 @@ async function migrate() {
     // ==========================================
     // TABLE: categories
     // ==========================================
-    await db.schema.createTable('categories', (table) => {
+    await db.schema.createTableIfNotExists('categories', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.string('name').notNullable();
       table.string('name_sw'); // Swahili
@@ -102,7 +101,7 @@ async function migrate() {
     // ==========================================
     // TABLE: products
     // ==========================================
-    await db.schema.createTable('products', (table) => {
+    await db.schema.createTableIfNotExists('products', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('supplier_id').references('id').inTable('suppliers').onDelete('CASCADE').notNullable();
       table.uuid('category_id').references('id').inTable('categories').onDelete('SET NULL');
@@ -123,7 +122,7 @@ async function migrate() {
     // ==========================================
     // TABLE: orders
     // ==========================================
-    await db.schema.createTable('orders', (table) => {
+    await db.schema.createTableIfNotExists('orders', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.string('order_number').unique().notNullable();
       table.uuid('client_id').references('id').inTable('users').onDelete('SET NULL');
@@ -157,7 +156,7 @@ async function migrate() {
     // ==========================================
     // TABLE: order_items
     // ==========================================
-    await db.schema.createTable('order_items', (table) => {
+    await db.schema.createTableIfNotExists('order_items', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('order_id').references('id').inTable('orders').onDelete('CASCADE').notNullable();
       table.uuid('product_id').references('id').inTable('products').onDelete('SET NULL');
@@ -173,7 +172,7 @@ async function migrate() {
     // ==========================================
     // TABLE: payments
     // ==========================================
-    await db.schema.createTable('payments', (table) => {
+    await db.schema.createTableIfNotExists('payments', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('order_id').references('id').inTable('orders').onDelete('CASCADE');
       table.uuid('user_id').references('id').inTable('users').onDelete('SET NULL');
@@ -191,7 +190,7 @@ async function migrate() {
     // ==========================================
     // TABLE: reviews
     // ==========================================
-    await db.schema.createTable('reviews', (table) => {
+    await db.schema.createTableIfNotExists('reviews', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('order_id').references('id').inTable('orders').onDelete('CASCADE');
       table.uuid('reviewer_id').references('id').inTable('users').onDelete('SET NULL');
@@ -205,7 +204,7 @@ async function migrate() {
     // ==========================================
     // TABLE: notifications
     // ==========================================
-    await db.schema.createTable('notifications', (table) => {
+    await db.schema.createTableIfNotExists('notifications', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('user_id').references('id').inTable('users').onDelete('CASCADE').notNullable();
       table.string('title').notNullable();
@@ -219,7 +218,7 @@ async function migrate() {
     // ==========================================
     // TABLE: delivery_zones
     // ==========================================
-    await db.schema.createTable('delivery_zones', (table) => {
+    await db.schema.createTableIfNotExists('delivery_zones', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.string('name').notNullable();
       table.string('city').defaultTo('Bukavu');
@@ -235,7 +234,7 @@ async function migrate() {
     // ==========================================
     // TABLE: support_tickets
     // ==========================================
-    await db.schema.createTable('support_tickets', (table) => {
+    await db.schema.createTableIfNotExists('support_tickets', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('user_id').references('id').inTable('users').onDelete('SET NULL');
       table.uuid('order_id').references('id').inTable('orders').onDelete('SET NULL');
@@ -250,7 +249,7 @@ async function migrate() {
     // ==========================================
     // TABLE: support_messages
     // ==========================================
-    await db.schema.createTable('support_messages', (table) => {
+    await db.schema.createTableIfNotExists('support_messages', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('ticket_id').references('id').inTable('support_tickets').onDelete('CASCADE');
       table.uuid('sender_id').references('id').inTable('users').onDelete('SET NULL');
@@ -262,7 +261,7 @@ async function migrate() {
     // ==========================================
     // TABLE: promotions
     // ==========================================
-    await db.schema.createTable('promotions', (table) => {
+    await db.schema.createTableIfNotExists('promotions', (table) => {
       table.uuid('id').primary().defaultTo(db.raw('uuid_generate_v4()'));
       table.uuid('supplier_id').references('id').inTable('suppliers').onDelete('CASCADE');
       table.string('code').unique();
@@ -282,18 +281,18 @@ async function migrate() {
     // ==========================================
     // INDEXES
     // ==========================================
-    await db.raw('CREATE INDEX idx_users_role ON users(role)');
-    await db.raw('CREATE INDEX idx_users_phone ON users(phone)');
-    await db.raw('CREATE INDEX idx_orders_status ON orders(status)');
-    await db.raw('CREATE INDEX idx_orders_client ON orders(client_id)');
-    await db.raw('CREATE INDEX idx_orders_supplier ON orders(supplier_id)');
-    await db.raw('CREATE INDEX idx_orders_driver ON orders(driver_id)');
-    await db.raw('CREATE INDEX idx_orders_created ON orders(created_at DESC)');
-    await db.raw('CREATE INDEX idx_products_supplier ON products(supplier_id)');
-    await db.raw('CREATE INDEX idx_products_category ON products(category_id)');
-    await db.raw('CREATE INDEX idx_drivers_online ON drivers(is_online, is_validated, is_busy)');
-    await db.raw('CREATE INDEX idx_payments_order ON payments(order_id)');
-    await db.raw('CREATE INDEX idx_notifications_user ON notifications(user_id, is_read)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_orders_client ON orders(client_id)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_orders_supplier ON orders(supplier_id)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_orders_driver ON orders(driver_id)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at DESC)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_products_supplier ON products(supplier_id)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_drivers_online ON drivers(is_online, is_validated, is_busy)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id)');
+    await db.raw('CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read)');
 
     logger.info('✅ Migration terminée avec succès!');
   } catch (error) {

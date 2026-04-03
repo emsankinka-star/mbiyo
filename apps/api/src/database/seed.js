@@ -48,41 +48,44 @@ async function seed() {
     }
 
     // Zone de livraison par défaut - Bukavu
-    await db('delivery_zones').insert({
-      id: uuidv4(),
-      name: 'Bukavu Centre',
-      city: 'Bukavu',
-      center_lat: -2.5083,
-      center_lng: 28.8608,
-      radius_km: 15,
-      base_fee: 2000,
-      per_km_fee: 500,
-      is_active: true,
-    });
-
-    await db('delivery_zones').insert({
-      id: uuidv4(),
-      name: 'Bukavu Ibanda',
-      city: 'Bukavu',
-      center_lat: -2.4912,
-      center_lng: 28.8447,
-      radius_km: 8,
-      base_fee: 1500,
-      per_km_fee: 400,
-      is_active: true,
-    });
-
-    await db('delivery_zones').insert({
-      id: uuidv4(),
-      name: 'Bukavu Kadutu',
-      city: 'Bukavu',
-      center_lat: -2.5167,
-      center_lng: 28.8667,
-      radius_km: 7,
-      base_fee: 1500,
-      per_km_fee: 400,
-      is_active: true,
-    });
+    const existingZones = await db('delivery_zones').count('* as count').first();
+    if (parseInt(existingZones.count) === 0) {
+      await db('delivery_zones').insert([
+        {
+          id: uuidv4(),
+          name: 'Bukavu Centre',
+          city: 'Bukavu',
+          center_lat: -2.5083,
+          center_lng: 28.8608,
+          radius_km: 15,
+          base_fee: 2000,
+          per_km_fee: 500,
+          is_active: true,
+        },
+        {
+          id: uuidv4(),
+          name: 'Bukavu Ibanda',
+          city: 'Bukavu',
+          center_lat: -2.4912,
+          center_lng: 28.8447,
+          radius_km: 8,
+          base_fee: 1500,
+          per_km_fee: 400,
+          is_active: true,
+        },
+        {
+          id: uuidv4(),
+          name: 'Bukavu Kadutu',
+          city: 'Bukavu',
+          center_lat: -2.5167,
+          center_lng: 28.8667,
+          radius_km: 7,
+          base_fee: 1500,
+          per_km_fee: 400,
+          is_active: true,
+        },
+      ]);
+    }
 
     logger.info('✅ Seed terminé avec succès!');
   } catch (error) {
