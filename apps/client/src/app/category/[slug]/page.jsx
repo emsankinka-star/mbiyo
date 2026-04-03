@@ -2,96 +2,100 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
-import { FiArrowLeft, FiShoppingCart, FiPlus, FiMinus } from 'react-icons/fi';
-import { useCartStore } from '@/stores/cartStore';
-import toast from 'react-hot-toast';
+import { FiArrowLeft, FiMapPin, FiStar, FiClock, FiPackage } from 'react-icons/fi';
+
+// Map URL slugs to business_type values and display labels
+const SLUG_MAP = {
+  restaurants:   { type: 'restaurant',  label: 'Restaurants',   icon: '🍽️' },
+  supermarches:  { type: 'supermarket', label: 'Supermarchés',  icon: '🛒' },
+  pharmacies:    { type: 'pharmacy',    label: 'Pharmacies',    icon: '💊' },
+  carburant:     { type: 'fuel',        label: 'Carburant',     icon: '⛽' },
+  boutiques:     { type: 'shop',        label: 'Boutiques',     icon: '🏪' },
+  boissons:      { type: 'shop',        label: 'Boissons',      icon: '🥤' },
+  boulangeries:  { type: 'shop',        label: 'Boulangeries',  icon: '🍞' },
+  electronique:  { type: 'shop',        label: 'Électronique',  icon: '📱' },
+};
 
 export default function CategoryPage() {
   const router = useRouter();
   const { slug } = useParams();
-  const [category, setCategory] = useState(null);
-  const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { addItem, items } = useCartStore();
+
+  const meta = SLUG_MAP[slug] || { type: slug, label: slug, icon: '📦' };
 
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch categories to find the one matching slug
-        const catRes = await api.get('/categories');
-        const cats = catRes.data?.data || catRes.data || [];
-        const cat = cats.find(c => c.slug === slug || c.id == slug);
-        if (cat) {
-          setCategory(cat);
-          const prodRes = await api.get(`/products?category_id=${cat.id}`);
-          setProducts(prodRes.data?.data || prodRes.data || []);
-        }
+        const res = await api.get('/suppliers');
+        const list = res.data?.data || res.data || [];
+        // Filter suppliers by matching business_type
+        const filtered = list.filter(s => s.business_type === meta.type);
+        setSuppliers(filtered);
       } catch { } finally { setLoading(false); }
     };
     load();
-  }, [slug]);
-
-  const handleAdd = (product) => {
-    addItem(product);
-    toast.success('Ajouté au panier');
-  };
-
-  const getQty = (id) => items.find(i => i.id === id)?.quantity || 0;
-
-  const formatPrice = (p) => `${Number(p).toLocaleString()} FC`;
+  }, [slug, meta.type]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-white px-4 pt-12 pb-4 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="p-1"><FiArrowLeft size={20} /></button>
-          <h1 className="text-lg font-bold">{category?.name || 'Catégorie'}</h1>
+          <span className="text-2xl">{meta.icon}</span>
+          <h1 className="text-lg font-bold">{meta.label}</h1>
         </div>
-        {category?.description && (
-          <p className="text-sm text-gray-500 mt-2">{category.description}</p>
-        )}
       </header>
 
       <div className="px-4 mt-4">
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Chargement...</div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">Aucun produit dans cette catégorie</div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full" />
+            <p className="text-sm text-gray-400 mt-3">Chargement...</p>
+          </div>
+        ) : suppliers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <FiPackage size={32} className="text-gray-300" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-600">Aucun commerce disponible</h2>
+            <p className="text-sm text-gray-400 mt-2 max-w-xs">
+              Il n&apos;y a pas encore de commerce enregistré dans la catégorie <strong>{meta.label}</strong>. Revenez bientôt !
+            </p>
+            <button onClick={() => router.back()}
+              className="mt-6 px-6 py-3 bg-primary-500 text-white rounded-xl text-sm font-semibold">
+              Retour
+            </button>
+          </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {products.filter(p => p.is_available !== false).map(p => (
-              <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-                <div className="aspect-square bg-gray-100 relative">
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+          <div className="space-y-3">
+            {suppliers.map(s => (
+              <div key={s.id} onClick={() => router.push(`/supplier/${s.id}`)}
+                className="bg-white rounded-2xl p-4 shadow-sm flex gap-4 cursor-pointer active:scale-[0.98] transition-transform">
+                {s.logo_url ? (
+                  <img src={s.logo_url} alt={s.business_name} className="w-16 h-16 rounded-xl object-cover" />
+                ) : (
+                  <div className="w-16 h-16 bg-primary-50 rounded-xl flex items-center justify-center text-xl font-bold text-primary-500">
+                    {s.business_name?.charAt(0)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold truncate">{s.business_name}</h3>
+                  {s.address && (
+                    <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                      <FiMapPin size={12} /> {s.address}
+                    </p>
                   )}
-                  {p.stock_quantity === 0 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white text-xs font-semibold bg-red-500 px-2 py-1 rounded-full">Rupture</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <h3 className="text-sm font-semibold truncate">{p.name}</h3>
-                  <p className="text-primary-500 font-bold text-sm mt-1">{formatPrice(p.price)}</p>
-                  {p.stock_quantity !== 0 && (
-                    <div className="mt-2">
-                      {getQty(p.id) > 0 ? (
-                        <div className="flex items-center justify-between bg-primary-50 rounded-lg px-2 py-1">
-                          <button onClick={() => useCartStore.getState().removeItem(p.id)} className="text-primary-500"><FiMinus /></button>
-                          <span className="text-sm font-semibold">{getQty(p.id)}</span>
-                          <button onClick={() => handleAdd(p)} className="text-primary-500"><FiPlus /></button>
-                        </div>
-                      ) : (
-                        <button onClick={() => handleAdd(p)}
-                          className="w-full bg-primary-500 text-white py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1">
-                          <FiShoppingCart size={14} /> Ajouter
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {s.average_rating && (
+                      <span className="text-xs text-amber-500 flex items-center gap-1">
+                        <FiStar size={12} /> {Number(s.average_rating).toFixed(1)}
+                      </span>
+                    )}
+                    <span className={`text-xs flex items-center gap-1 ${s.is_open ? 'text-green-500' : 'text-red-400'}`}>
+                      <FiClock size={12} /> {s.is_open ? 'Ouvert' : 'Fermé'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
