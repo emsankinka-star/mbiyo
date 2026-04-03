@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost', 'api.mbiyo.cd', 'mbiyo-production.up.railway.app', 'storage.googleapis.com', 'firebasestorage.googleapis.com'],
+    domains: ['localhost', 'api.mbiyo.cd', 'mbiyo-production.up.railway.app', 'res.cloudinary.com'],
     unoptimized: true,
   },
   compress: true,

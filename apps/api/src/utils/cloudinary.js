@@ -1,18 +1,20 @@
+const { v2: cloudinary } = require('cloudinary');
 const sharp = require('sharp');
-const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
-const { getBucket, BUCKET_NAME } = require('./firebase');
+
+// Configuration Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 /**
  * Compresse une image avec Sharp avant upload
- * - Images standard (produits, logos, covers) → max 800px, qualité 80, WebP
- * - Avatars → max 300px, qualité 75, WebP
- * - Documents (PDF) → pas de compression
  */
 async function compressImage(buffer, mimetype, options = {}) {
-  // Ne pas compresser les PDF
   if (mimetype === 'application/pdf') {
-    return { buffer, format: 'pdf', contentType: 'application/pdf' };
+    return { buffer, format: 'pdf' };
   }
 
   const {
@@ -36,86 +38,78 @@ async function compressImage(buffer, mimetype, options = {}) {
     const savings = Math.round((1 - compressedSize / originalSize) * 100);
     logger.info(`Image compressée: ${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB (-${savings}%)`);
 
-    return { buffer: compressed, format, contentType: `image/${format}` };
+    return { buffer: compressed, format };
   } catch (error) {
     logger.error('Erreur compression image:', error.message);
-    return { buffer, format: mimetype.split('/')[1], contentType: mimetype };
+    return { buffer, format: mimetype.split('/')[1] };
   }
 }
 
 /**
- * Upload un fichier vers Google Cloud Storage avec compression
+ * Upload un fichier vers Cloudinary avec compression Sharp
  * @param {Object} file - Objet multer (buffer, mimetype, originalname)
- * @param {string} folder - Dossier GCS (ex: 'products', 'avatars')
+ * @param {string} folder - Dossier Cloudinary (ex: 'products', 'avatars')
  * @param {Object} compressOptions - Options de compression Sharp
- * @returns {Promise<{url: string, path: string}>}
+ * @returns {Promise<{url: string, publicId: string}>}
  */
-async function uploadToGCS(file, folder = 'misc', compressOptions = {}) {
-  const { buffer: processedBuffer, format, contentType } = await compressImage(
+async function uploadToCloudinary(file, folder = 'misc', compressOptions = {}) {
+  const { buffer: processedBuffer, format } = await compressImage(
     file.buffer,
     file.mimetype,
     compressOptions
   );
 
-  const bucket = getBucket();
-  const filename = `mbiyo/${folder}/${uuidv4()}.${format}`;
-  const blob = bucket.file(filename);
+  return new Promise((resolve, reject) => {
+    const resourceType = file.mimetype === 'application/pdf' ? 'raw' : 'image';
 
-  // Token pour l'accès public via Firebase-style URL
-  const token = uuidv4();
-
-  await blob.save(processedBuffer, {
-    metadata: {
-      contentType,
-      metadata: {
-        firebaseStorageDownloadTokens: token,
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `mbiyo/${folder}`,
+        resource_type: resourceType,
+        format: resourceType === 'image' ? format : undefined,
       },
-    },
+      (error, result) => {
+        if (error) {
+          logger.error('Erreur upload Cloudinary:', error.message);
+          return reject(error);
+        }
+        logger.info(`Image uploadée: ${result.public_id} (${(processedBuffer.length / 1024).toFixed(1)}KB)`);
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id,
+        });
+      }
+    );
+
+    uploadStream.end(processedBuffer);
   });
-
-  // URL Firebase Storage (accessible publiquement via token, sans rendre le bucket public)
-  const encodedPath = encodeURIComponent(filename);
-  const url = `https://firebasestorage.googleapis.com/v0/b/${BUCKET_NAME}/o/${encodedPath}?alt=media&token=${token}`;
-
-  logger.info(`Image uploadée: ${filename} (${(processedBuffer.length / 1024).toFixed(1)}KB)`);
-
-  return { url, path: filename };
 }
 
 /**
- * Supprime un fichier de GCS par son URL ou path
- * @param {string} urlOrPath - URL GCS complète ou chemin dans le bucket
+ * Supprime un fichier de Cloudinary
+ * @param {string} urlOrPublicId - URL Cloudinary complète ou public_id
  */
-async function deleteFromGCS(urlOrPath) {
-  if (!urlOrPath) return;
+async function deleteFromCloudinary(urlOrPublicId) {
+  if (!urlOrPublicId) return;
 
   try {
-    let filePath = urlOrPath;
+    let publicId = urlOrPublicId;
 
-    // Extraire le chemin depuis une URL Firebase Storage
-    if (urlOrPath.includes('firebasestorage.googleapis.com')) {
-      const url = new URL(urlOrPath);
-      // Format: /v0/b/bucket/o/encoded-path
-      const encodedPath = url.pathname.split('/o/')[1];
-      if (encodedPath) filePath = decodeURIComponent(encodedPath);
-    }
-    // Ancien format storage.googleapis.com
-    else if (urlOrPath.includes('storage.googleapis.com')) {
-      const url = new URL(urlOrPath);
-      filePath = url.pathname.replace(`/${BUCKET_NAME}/`, '');
+    // Extraire le public_id depuis l'URL
+    if (urlOrPublicId.includes('cloudinary.com')) {
+      const parts = urlOrPublicId.split('/upload/');
+      if (parts[1]) {
+        publicId = parts[1].replace(/^v\d+\//, '').replace(/\.[^/.]+$/, '');
+      }
     }
 
-    // Ne pas supprimer les anciennes images locales (/uploads/...)
-    if (filePath.startsWith('/uploads/')) return;
+    // Ne pas supprimer les anciennes images locales
+    if (publicId.startsWith('/uploads/')) return;
 
-    const bucket = getBucket();
-    await bucket.file(filePath).delete();
-    logger.info(`Image supprimée de GCS: ${filePath}`);
+    const result = await cloudinary.uploader.destroy(publicId);
+    logger.info(`Image supprimée de Cloudinary: ${publicId} (${result.result})`);
   } catch (error) {
-    // Ignorer silencieusement si le fichier n'existe pas
-    if (error.code !== 404) {
-      logger.error('Erreur suppression GCS:', error.message);
-    }
+    logger.error('Erreur suppression Cloudinary:', error.message);
   }
 }
 
@@ -130,10 +124,8 @@ const COMPRESS_PRESETS = {
 };
 
 module.exports = {
-  uploadToCloudinary: uploadToGCS,     // Alias rétrocompatible
-  deleteFromCloudinary: deleteFromGCS, // Alias rétrocompatible
-  uploadToGCS,
-  deleteFromGCS,
+  uploadToCloudinary,
+  deleteFromCloudinary,
   compressImage,
   COMPRESS_PRESETS,
 };

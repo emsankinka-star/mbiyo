@@ -3,7 +3,27 @@
  */
 const { db } = require('../database');
 const logger = require('../utils/logger');
-const { getAdmin } = require('../utils/firebase');
+
+// Firebase Admin (optionnel)
+let firebaseAdmin = null;
+try {
+  if (process.env.FIREBASE_PROJECT_ID) {
+    const admin = require('firebase-admin');
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+        }),
+      });
+    }
+    firebaseAdmin = admin;
+    logger.info('Firebase Admin initialisé');
+  }
+} catch (error) {
+  logger.warn('Firebase non configuré:', error.message);
+}
 
 /**
  * Envoyer une notification à un utilisateur
@@ -20,8 +40,7 @@ async function notifyUser(userId, { title, body, type = 'system', data = {} }) {
     });
 
     // Push notification via FCM
-    const firebaseAdmin = getAdmin();
-    if (firebaseAdmin && firebaseAdmin.apps.length) {
+    if (firebaseAdmin) {
       const user = await db('users').select('fcm_token').where('id', userId).first();
       if (user?.fcm_token) {
         try {

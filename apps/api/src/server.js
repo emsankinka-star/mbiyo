@@ -8,7 +8,6 @@ const { initializeDatabase } = require('./database');
 const { migrate } = require('./database/migrate');
 const { seed } = require('./database/seed');
 const logger = require('./utils/logger');
-const { initFirebase } = require('./utils/firebase');
 
 const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
@@ -22,9 +21,6 @@ async function start() {
     // Tester la connexion à la base de données
     await initializeDatabase();
     logger.info('✅ Base de données connectée');
-
-    // Initialiser Firebase (notifications + stockage GCS)
-    initFirebase();
 
     // Exécuter les migrations et seeds (idempotent)
     if (process.env.RUN_MIGRATIONS === 'true') {
