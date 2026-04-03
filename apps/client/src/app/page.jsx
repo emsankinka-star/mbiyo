@@ -95,6 +95,24 @@ export default function HomePage() {
           </div>
           <NearbySuppliers />
         </section>
+
+        {/* Liens partenaires */}
+        <section className="mt-8 mb-4">
+          <div className="bg-gradient-to-r from-primary-500 to-orange-400 rounded-2xl p-5 text-white">
+            <h3 className="font-bold text-lg mb-1">Rejoignez Mbiyo</h3>
+            <p className="text-white/80 text-xs mb-4">Gagnez de l'argent avec nous</p>
+            <div className="flex gap-3">
+              <a href="https://mbiyo-driver.vercel.app" target="_blank" rel="noopener noreferrer"
+                className="flex-1 bg-white text-primary-600 py-2.5 rounded-xl text-sm font-semibold text-center shadow-sm">
+                🏍️ Devenir livreur
+              </a>
+              <a href="https://mbiyo-supplier.vercel.app" target="_blank" rel="noopener noreferrer"
+                className="flex-1 bg-white text-primary-600 py-2.5 rounded-xl text-sm font-semibold text-center shadow-sm">
+                🏪 Devenir fournisseur
+              </a>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Bottom Nav */}

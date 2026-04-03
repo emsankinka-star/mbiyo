@@ -87,6 +87,20 @@ export default function LoginPage() {
             S'inscrire
           </Link>
         </p>
+
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <p className="text-center text-xs text-gray-400 mb-3">Vous êtes un professionnel ?</p>
+          <div className="flex gap-3">
+            <a href="https://mbiyo-driver.vercel.app" target="_blank" rel="noopener noreferrer"
+              className="flex-1 border border-primary-200 bg-primary-50 text-primary-600 py-2.5 rounded-xl text-sm font-semibold text-center">
+              🏍️ Devenir livreur
+            </a>
+            <a href="https://mbiyo-supplier.vercel.app" target="_blank" rel="noopener noreferrer"
+              className="flex-1 border border-primary-200 bg-primary-50 text-primary-600 py-2.5 rounded-xl text-sm font-semibold text-center">
+              🏪 Devenir fournisseur
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );
