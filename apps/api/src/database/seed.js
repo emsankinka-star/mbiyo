@@ -1,7 +1,9 @@
 /**
  * Seed - Données initiales pour Mbiyo
  */
-const { db } = require('./index');
+require('dotenv').config({ path: '../../../.env' });
+require('dotenv').config();
+const db = require('./index');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');

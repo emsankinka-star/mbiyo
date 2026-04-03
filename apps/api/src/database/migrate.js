@@ -1,8 +1,10 @@
 /**
  * Migration initiale - Création de toutes les tables Mbiyo
  */
-const { db } = require('../index');
-const logger = require('../../utils/logger');
+require('dotenv').config({ path: '../../../.env' });
+require('dotenv').config();
+const db = require('./index');
+const logger = require('../utils/logger');
 
 async function migrate() {
   try {

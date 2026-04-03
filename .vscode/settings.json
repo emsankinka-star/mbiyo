@@ -3,6 +3,8 @@
         "command": true,
         "gh": true,
         "git init": true,
-        "git add": true
+        "git add": true,
+        "git commit": true,
+        "railway": true
     }
 }

@@ -1,4 +1,5 @@
 require('dotenv').config({ path: '../../.env' });
+require('dotenv').config(); // also load local .env for Railway
 
 const app = require('./app');
 const { createServer } = require('http');

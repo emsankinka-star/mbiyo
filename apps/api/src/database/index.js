@@ -3,13 +3,18 @@ const logger = require('../utils/logger');
 
 const config = {
   client: 'pg',
-  connection: process.env.DATABASE_URL || {
-    host: 'localhost',
-    port: 5432,
-    user: 'mbiyo_user',
-    password: 'mbiyo_password',
-    database: 'mbiyo_db',
-  },
+  connection: process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      }
+    : {
+        host: 'localhost',
+        port: 5432,
+        user: 'mbiyo_user',
+        password: 'mbiyo_password',
+        database: 'mbiyo_db',
+      },
   pool: {
     min: 2,
     max: 10,
