@@ -142,6 +142,7 @@ async function migrate() {
       table.decimal('delivery_lat', 10, 7);
       table.decimal('delivery_lng', 10, 7);
       table.string('delivery_address');
+      table.jsonb('delivery_details').defaultTo('{}');
       table.text('notes');
       table.decimal('distance_km', 8, 2);
       table.timestamp('estimated_delivery');
@@ -313,6 +314,7 @@ async function migrate() {
     await db.raw(`UPDATE products SET min_quantity = 1 WHERE min_quantity IS NULL`);
     await db.raw(`UPDATE products SET step = 1 WHERE step IS NULL`);
     await addColIfMissing('suppliers', 'address_details', (t) => t.jsonb('address_details').defaultTo('{}'));
+    await addColIfMissing('orders', 'delivery_details', (t) => t.jsonb('delivery_details').defaultTo('{}'));
 
     logger.info('✅ Migration terminée avec succès!');
   } catch (error) {

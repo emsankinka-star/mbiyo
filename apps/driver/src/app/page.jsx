@@ -120,9 +120,10 @@ export default function DriverHome() {
                     <span className="text-blue-600 font-bold">{(order.delivery_fee || 0).toLocaleString()} CDF</span>
                   </div>
                   <div className="space-y-1 text-sm text-gray-500">
-                    <div className="flex items-center gap-2"><FiMapPin size={14} className="text-green-500" /><span className="truncate">{order.supplier_name || 'Fournisseur'}</span></div>
+                    <div className="flex items-center gap-2"><FiMapPin size={14} className="text-green-500" /><span className="truncate">{order.business_name || order.supplier_name || 'Fournisseur'}</span></div>
                     <div className="flex items-center gap-2"><FiMapPin size={14} className="text-red-500" /><span className="truncate">{order.delivery_address || 'Adresse de livraison'}</span></div>
-                    <div className="flex items-center gap-2"><FiClock size={14} /><span>{order.distance ? `${order.distance.toFixed(1)} km` : '—'}</span></div>
+                    {order.client_name && <div className="flex items-center gap-2 text-xs text-gray-400"><span>Client : {order.client_name}</span></div>}
+                    <div className="flex items-center gap-2"><FiClock size={14} /><span>{order.distance_to_pickup ? `${order.distance_to_pickup} km` : '—'}</span></div>
                   </div>
                 </button>
               ))}

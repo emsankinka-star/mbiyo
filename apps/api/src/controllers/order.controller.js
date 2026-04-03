@@ -19,7 +19,7 @@ const orderController = {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return apiResponse(res, 400, errors.array());
 
-      const { supplier_id, items, delivery_lat, delivery_lng, delivery_address, notes } = req.body;
+      const { supplier_id, items, delivery_lat, delivery_lng, delivery_address, delivery_details, notes } = req.body;
 
       // Vérifier le fournisseur
       const supplier = await trx('suppliers').where('id', supplier_id).first();
@@ -99,6 +99,7 @@ const orderController = {
         delivery_lat,
         delivery_lng,
         delivery_address: delivery_address || 'Repère GPS',
+        delivery_details: delivery_details ? JSON.stringify(delivery_details) : '{}',
         notes,
         distance_km: Math.round(distanceKm * 100) / 100,
         estimated_delivery: new Date(Date.now() + (supplier.preparation_time + 20) * 60000),
@@ -183,6 +184,15 @@ const orderController = {
       if (!order) return apiResponse(res, 404, null, 'Commande non trouvée');
 
       order.items = await db('order_items').where('order_id', order.id);
+
+      // Client info
+      if (order.client_id) {
+        const client = await db('users').select('full_name', 'phone').where('id', order.client_id).first();
+        if (client) {
+          order.client_name = client.full_name;
+          order.client_phone = client.phone;
+        }
+      }
 
       if (order.supplier_id) {
         order.supplier = await db('suppliers')

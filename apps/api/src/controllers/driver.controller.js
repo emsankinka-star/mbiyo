@@ -156,7 +156,8 @@ const driverController = {
         .where('driver_id', driver.id)
         .whereIn('status', ['delivered', 'cancelled'])
         .join('suppliers', 'orders.supplier_id', 'suppliers.id')
-        .select('orders.*', 'suppliers.business_name')
+        .leftJoin('users', 'orders.client_id', 'users.id')
+        .select('orders.*', 'suppliers.business_name', 'users.full_name as client_name')
         .orderBy('orders.created_at', 'desc')
         .limit(lim).offset(offset);
 
@@ -207,7 +208,15 @@ const driverController = {
         .where('status', 'ready')
         .whereNull('driver_id')
         .join('suppliers', 'orders.supplier_id', 'suppliers.id')
-        .select('orders.*', 'suppliers.business_name', 'suppliers.address as pickup_address')
+        .join('users', 'orders.client_id', 'users.id')
+        .select(
+          'orders.*',
+          'suppliers.business_name',
+          'suppliers.address as pickup_address',
+          'suppliers.address_details as pickup_address_details',
+          'users.full_name as client_name',
+          'users.phone as client_phone'
+        )
         .orderBy('orders.created_at', 'asc');
 
       // Ajouter la distance depuis le livreur

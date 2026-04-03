@@ -46,7 +46,9 @@ export default function HistoryPage() {
                   </div>
                 </div>
                 <div className="text-sm text-gray-500 space-y-1">
-                  <div className="flex items-center gap-2"><FiMapPin size={12} /><span className="truncate">{d.delivery_address || '—'}</span></div>
+                  <div className="flex items-center gap-2"><FiMapPin size={12} className="text-green-500 shrink-0" /><span className="truncate">{d.business_name || 'Fournisseur'}</span></div>
+                  <div className="flex items-center gap-2"><FiMapPin size={12} className="text-red-500 shrink-0" /><span className="truncate">{d.delivery_address || '—'}</span></div>
+                  {d.client_name && <div className="text-xs text-gray-400">Client : {d.client_name}</div>}
                   <div className="flex items-center gap-2"><FiClock size={12} /><span>{new Date(d.delivered_at || d.updated_at).toLocaleDateString('fr-FR')}</span></div>
                 </div>
               </div>

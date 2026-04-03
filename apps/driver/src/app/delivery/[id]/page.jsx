@@ -130,11 +130,14 @@ export default function DeliveryPage() {
             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mt-1"><FiMapPin className="text-green-600" /></div>
             <div className="flex-1">
               <p className="text-xs text-gray-400">RÉCUPÉRATION</p>
-              <p className="font-semibold">{order?.supplier_name || 'Fournisseur'}</p>
-              <p className="text-sm text-gray-500">{order?.supplier_address || 'Adresse du fournisseur'}</p>
+              <p className="font-semibold">{order?.supplier?.business_name || order?.supplier_name || 'Fournisseur'}</p>
+              <p className="text-sm text-gray-500">{order?.supplier?.address || order?.supplier_address || 'Adresse du fournisseur'}</p>
+              {order?.supplier?.address_details?.reference && (
+                <p className="text-xs text-orange-500 mt-0.5">Repère : {order.supplier.address_details.reference}</p>
+              )}
             </div>
-            {order?.supplier_phone && (
-              <a href={`tel:${order.supplier_phone}`} className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            {(order?.supplier?.owner_phone) && (
+              <a href={`tel:${order.supplier.owner_phone}`} className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                 <FiPhone className="text-blue-600" />
               </a>
             )}
@@ -148,8 +151,22 @@ export default function DeliveryPage() {
             <div className="flex-1">
               <p className="text-xs text-gray-400">LIVRAISON</p>
               <p className="font-semibold">{order?.client_name || 'Client'}</p>
-              <p className="text-sm text-gray-500">{order?.delivery_address || 'Adresse de livraison'}</p>
-              {order?.delivery_notes && <p className="text-xs text-gray-400 mt-1">Note: {order.delivery_notes}</p>}
+              <p className="text-sm text-gray-700">{order?.delivery_address || 'Adresse de livraison'}</p>
+              {(() => {
+                const dd = typeof order?.delivery_details === 'string'
+                  ? (() => { try { return JSON.parse(order.delivery_details); } catch { return null; } })()
+                  : order?.delivery_details;
+                if (!dd || (!dd.commune && !dd.quartier)) return null;
+                return (
+                  <div className="mt-1 space-y-0.5">
+                    {dd.reference && <p className="text-xs text-orange-500 font-medium">📍 Repère : {dd.reference}</p>}
+                    <p className="text-xs text-gray-400">
+                      {[dd.numero && `N°${dd.numero}`, dd.avenue && `Av. ${dd.avenue}`, dd.quartier && `Q/ ${dd.quartier}`, dd.commune && `C/ ${dd.commune}`].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                );
+              })()}
+              {order?.notes && <p className="text-xs text-gray-400 mt-1">Note : {order.notes}</p>}
             </div>
             {order?.client_phone && (
               <a href={`tel:${order.client_phone}`} className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
