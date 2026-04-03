@@ -71,11 +71,11 @@ async function uploadToGCS(file, folder = 'misc', compressOptions = {}) {
         firebaseStorageDownloadTokens: token,
       },
     },
-    public: true,
   });
 
-  // URL publique directe
-  const url = `https://storage.googleapis.com/${BUCKET_NAME}/${filename}`;
+  // URL Firebase Storage (accessible publiquement via token, sans rendre le bucket public)
+  const encodedPath = encodeURIComponent(filename);
+  const url = `https://firebasestorage.googleapis.com/v0/b/${BUCKET_NAME}/o/${encodedPath}?alt=media&token=${token}`;
 
   logger.info(`Image uploadée: ${filename} (${(processedBuffer.length / 1024).toFixed(1)}KB)`);
 
@@ -92,10 +92,16 @@ async function deleteFromGCS(urlOrPath) {
   try {
     let filePath = urlOrPath;
 
-    // Extraire le chemin depuis l'URL
-    if (urlOrPath.includes('storage.googleapis.com')) {
+    // Extraire le chemin depuis une URL Firebase Storage
+    if (urlOrPath.includes('firebasestorage.googleapis.com')) {
       const url = new URL(urlOrPath);
-      // Format: /bucket-name/folder/file.ext
+      // Format: /v0/b/bucket/o/encoded-path
+      const encodedPath = url.pathname.split('/o/')[1];
+      if (encodedPath) filePath = decodeURIComponent(encodedPath);
+    }
+    // Ancien format storage.googleapis.com
+    else if (urlOrPath.includes('storage.googleapis.com')) {
+      const url = new URL(urlOrPath);
       filePath = url.pathname.replace(`/${BUCKET_NAME}/`, '');
     }
 
