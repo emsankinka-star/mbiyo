@@ -4,6 +4,7 @@ const { validationResult } = require('express-validator');
 const { db } = require('../database');
 const { apiResponse } = require('../utils/helpers');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
 function generateTokens(user) {
   const payload = { id: user.id, role: user.role, phone: user.phone };
@@ -212,6 +213,30 @@ const authController = {
       return apiResponse(res, 200, user, 'Profil mis à jour');
     } catch (error) {
       return apiResponse(res, 500, null, 'Erreur lors de la mise à jour');
+    }
+  },
+
+  /**
+   * PUT /api/auth/me/avatar
+   */
+  async uploadAvatar(req, res) {
+    try {
+      if (!req.file) return apiResponse(res, 400, null, 'Image requise');
+
+      // Supprimer l'ancien avatar
+      const existing = await db('users').where('id', req.user.id).first();
+      if (existing?.avatar_url) await deleteFromCloudinary(existing.avatar_url);
+
+      const { url } = await uploadToCloudinary(req.file, 'avatars', COMPRESS_PRESETS.avatar);
+
+      const [user] = await db('users')
+        .where('id', req.user.id)
+        .update({ avatar_url: url })
+        .returning(['id', 'full_name', 'email', 'phone', 'role', 'avatar_url', 'lang']);
+
+      return apiResponse(res, 200, user, 'Avatar mis à jour');
+    } catch (error) {
+      return apiResponse(res, 500, null, 'Erreur upload avatar');
     }
   },
 

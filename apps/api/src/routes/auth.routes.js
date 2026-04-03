@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/auth.controller');
 const { authenticate } = require('../middleware/auth.middleware');
+const upload = require('../middleware/upload.middleware');
 
 // Validation
 const registerValidation = [
@@ -24,6 +25,7 @@ router.post('/refresh-token', authController.refreshToken);
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getMe);
 router.put('/me', authenticate, authController.updateProfile);
+router.put('/me/avatar', authenticate, upload.single('avatar'), authController.uploadAvatar);
 router.put('/me/password', authenticate, authController.changePassword);
 router.put('/me/location', authenticate, authController.updateLocation);
 router.put('/me/fcm-token', authenticate, authController.updateFcmToken);

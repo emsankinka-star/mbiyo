@@ -18,6 +18,7 @@ router.post('/register', authenticate, [
 
 router.put('/me', authenticate, authorize('supplier'), supplierController.updateProfile);
 router.put('/me/logo', authenticate, authorize('supplier'), upload.single('logo'), supplierController.uploadLogo);
+router.put('/me/cover', authenticate, authorize('supplier'), upload.single('cover'), supplierController.uploadCover);
 router.put('/me/status', authenticate, authorize('supplier'), supplierController.toggleOpen);
 router.put('/me/hours', authenticate, authorize('supplier'), supplierController.updateHours);
 router.get('/me/stats', authenticate, authorize('supplier'), supplierController.getStats);

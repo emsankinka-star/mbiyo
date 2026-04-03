@@ -2,6 +2,8 @@ const router = require('express').Router();
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const { db } = require('../database');
 const { apiResponse, paginate } = require('../utils/helpers');
+const upload = require('../middleware/upload.middleware');
+const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
 // ==========================================
 // GESTION DES UTILISATEURS
@@ -245,6 +247,34 @@ router.post('/categories', authenticate, authorize('admin'), async (req, res) =>
     return apiResponse(res, 201, category);
   } catch (error) {
     return apiResponse(res, 500, null, 'Erreur serveur');
+  }
+});
+
+router.put('/categories/:id/image', authenticate, authorize('admin'), upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return apiResponse(res, 400, null, 'Image requise');
+    const existing = await db('categories').where('id', req.params.id).first();
+    if (!existing) return apiResponse(res, 404, null, 'Catégorie non trouvée');
+    if (existing.image_url) await deleteFromCloudinary(existing.image_url);
+    const { url } = await uploadToCloudinary(req.file, 'categories', COMPRESS_PRESETS.category);
+    const [category] = await db('categories').where('id', req.params.id).update({ image_url: url }).returning('*');
+    return apiResponse(res, 200, category);
+  } catch (error) {
+    return apiResponse(res, 500, null, 'Erreur upload image catégorie');
+  }
+});
+
+router.put('/categories/:id/icon', authenticate, authorize('admin'), upload.single('icon'), async (req, res) => {
+  try {
+    if (!req.file) return apiResponse(res, 400, null, 'Icône requise');
+    const existing = await db('categories').where('id', req.params.id).first();
+    if (!existing) return apiResponse(res, 404, null, 'Catégorie non trouvée');
+    if (existing.icon_url) await deleteFromCloudinary(existing.icon_url);
+    const { url } = await uploadToCloudinary(req.file, 'categories/icons', COMPRESS_PRESETS.category);
+    const [category] = await db('categories').where('id', req.params.id).update({ icon_url: url }).returning('*');
+    return apiResponse(res, 200, category);
+  } catch (error) {
+    return apiResponse(res, 500, null, 'Erreur upload icône catégorie');
   }
 });
 

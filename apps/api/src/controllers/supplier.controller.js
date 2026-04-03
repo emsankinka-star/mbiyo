@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const { db } = require('../database');
 const { apiResponse, paginate, calculateDistance } = require('../utils/helpers');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
 const supplierController = {
   /**
@@ -191,17 +192,43 @@ const supplierController = {
    */
   async uploadLogo(req, res) {
     try {
-      if (!req.file) {
-        return apiResponse(res, 400, null, 'Fichier requis');
-      }
-      const logo_url = `/uploads/${req.file.filename}`;
+      if (!req.file) return apiResponse(res, 400, null, 'Fichier requis');
+
+      // Supprimer l'ancien logo
+      const existing = await db('suppliers').where('user_id', req.user.id).first();
+      if (existing?.logo_url) await deleteFromCloudinary(existing.logo_url);
+
+      const { url } = await uploadToCloudinary(req.file, 'suppliers/logos', COMPRESS_PRESETS.logo);
+
       const [supplier] = await db('suppliers')
         .where('user_id', req.user.id)
-        .update({ logo_url })
+        .update({ logo_url: url })
         .returning('*');
       return apiResponse(res, 200, supplier);
     } catch (error) {
-      return apiResponse(res, 500, null, 'Erreur serveur');
+      return apiResponse(res, 500, null, 'Erreur upload logo');
+    }
+  },
+
+  /**
+   * PUT /api/suppliers/me/cover
+   */
+  async uploadCover(req, res) {
+    try {
+      if (!req.file) return apiResponse(res, 400, null, 'Fichier requis');
+
+      const existing = await db('suppliers').where('user_id', req.user.id).first();
+      if (existing?.cover_url) await deleteFromCloudinary(existing.cover_url);
+
+      const { url } = await uploadToCloudinary(req.file, 'suppliers/covers', COMPRESS_PRESETS.cover);
+
+      const [supplier] = await db('suppliers')
+        .where('user_id', req.user.id)
+        .update({ cover_url: url })
+        .returning('*');
+      return apiResponse(res, 200, supplier);
+    } catch (error) {
+      return apiResponse(res, 500, null, 'Erreur upload cover');
     }
   },
 

@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const { db } = require('../database');
 const { apiResponse, calculateDistance, paginate } = require('../utils/helpers');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
 const driverController = {
   /**
@@ -18,13 +19,20 @@ const driverController = {
       const { vehicle_type, license_plate } = req.body;
       const files = req.files || {};
 
+      // Upload des documents vers Cloudinary avec compression
+      const [idDocUrl, licenseUrl, vehicleUrl] = await Promise.all([
+        files.id_document ? uploadToCloudinary(files.id_document[0], 'drivers/documents', COMPRESS_PRESETS.document) : null,
+        files.license ? uploadToCloudinary(files.license[0], 'drivers/licenses', COMPRESS_PRESETS.document) : null,
+        files.vehicle_photo ? uploadToCloudinary(files.vehicle_photo[0], 'drivers/vehicles', COMPRESS_PRESETS.product) : null,
+      ]);
+
       const [driver] = await db('drivers').insert({
         user_id: req.user.id,
         vehicle_type,
         license_plate,
-        id_document_url: files.id_document ? `/uploads/${files.id_document[0].filename}` : null,
-        license_url: files.license ? `/uploads/${files.license[0].filename}` : null,
-        vehicle_photo_url: files.vehicle_photo ? `/uploads/${files.vehicle_photo[0].filename}` : null,
+        id_document_url: idDocUrl?.url || null,
+        license_url: licenseUrl?.url || null,
+        vehicle_photo_url: vehicleUrl?.url || null,
       }).returning('*');
 
       await db('users').where('id', req.user.id).update({ role: 'driver' });

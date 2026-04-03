@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const { db } = require('../database');
 const { apiResponse, paginate } = require('../utils/helpers');
+const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
 const productController = {
   /**
@@ -152,11 +153,18 @@ const productController = {
   async uploadImage(req, res) {
     try {
       if (!req.file) return apiResponse(res, 400, null, 'Image requise');
-      const image_url = `/uploads/${req.file.filename}`;
-      const [product] = await db('products').where('id', req.params.id).update({ image_url }).returning('*');
+
+      // Supprimer l'ancienne image de Cloudinary
+      const existing = await db('products').where('id', req.params.id).first();
+      if (existing?.image_url) await deleteFromCloudinary(existing.image_url);
+
+      // Compresser et uploader vers Cloudinary
+      const { url } = await uploadToCloudinary(req.file, 'products', COMPRESS_PRESETS.product);
+
+      const [product] = await db('products').where('id', req.params.id).update({ image_url: url }).returning('*');
       return apiResponse(res, 200, product);
     } catch (error) {
-      return apiResponse(res, 500, null, 'Erreur serveur');
+      return apiResponse(res, 500, null, 'Erreur upload image');
     }
   },
 
