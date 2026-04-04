@@ -33,6 +33,8 @@ export default function AddressModal({ isOpen, onClose }) {
   });
   const [mapReady, setMapReady] = useState(false);
   const [activeTab, setActiveTab] = useState('address'); // 'address' | 'map'
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const hasAutoLocated = useRef(false);
 
   // Load existing details on open
   useEffect(() => {
@@ -48,6 +50,49 @@ export default function AddressModal({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
+  // Auto-detect GPS when opening map tab or clicking "use my position"
+  const locateAndCenter = useCallback(async () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        });
+      });
+      const { latitude: lat, longitude: lng } = pos.coords;
+      setMapCenter({ lat, lng });
+      if (map.current && marker.current) {
+        map.current.flyTo({ center: [lng, lat], zoom: 16 });
+        marker.current.setLngLat([lng, lat]);
+      }
+      reverseGeocode(lat, lng);
+      // Also update store
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (token) {
+        try {
+          const res = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&language=fr`
+          );
+          const data = await res.json();
+          if (data.features?.length > 0) {
+            useLocationStore.getState().setLocation(lat, lng, data.features[0].place_name);
+          } else {
+            useLocationStore.getState().setLocation(lat, lng, `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          }
+        } catch {
+          useLocationStore.getState().setLocation(lat, lng, `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        }
+      }
+    } catch {
+      /* GPS error — keep current position */
+    } finally {
+      setGpsLoading(false);
+    }
+  }, [reverseGeocode]);
+
   // Init map when tab switches to map
   useEffect(() => {
     if (!isOpen || activeTab !== 'map' || !mapContainer.current || !MAPBOX_TOKEN) return;
@@ -60,10 +105,13 @@ export default function AddressModal({ isOpen, onClose }) {
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
+    // Use current GPS-based center or fallback
+    const center = [mapCenter.lng, mapCenter.lat];
+
     const m = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [mapCenter.lng, mapCenter.lat],
+      center,
       zoom: 15,
       attributionControl: false,
     });
@@ -96,7 +144,14 @@ export default function AddressModal({ isOpen, onClose }) {
       reverseGeocode(lat, lng);
     });
 
-    m.on('load', () => setMapReady(true));
+    m.on('load', () => {
+      setMapReady(true);
+      // Auto-locate on first map open
+      if (!hasAutoLocated.current) {
+        hasAutoLocated.current = true;
+        locateAndCenter();
+      }
+    });
     map.current = m;
 
     return () => {
@@ -105,7 +160,7 @@ export default function AddressModal({ isOpen, onClose }) {
         map.current = null;
       }
     };
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, locateAndCenter]);
 
   // Reverse geocode coords to fill address fields
   const reverseGeocode = useCallback(async (lat, lng) => {
@@ -120,16 +175,16 @@ export default function AddressModal({ isOpen, onClose }) {
         const ctx = feat.context || [];
         const getCtx = (type) => ctx.find((c) => c.id?.startsWith(type))?.text || '';
 
-        // Auto-fill from geocode results
+        // Auto-fill from geocode results (always overwrite with GPS data)
         const neighborhood = getCtx('neighborhood') || getCtx('locality');
         const place = getCtx('place');
-        if (neighborhood && !quartier) setQuartier(neighborhood);
-        if (place && !commune) setCommune(place);
+        if (neighborhood) setQuartier(neighborhood);
+        if (place) setCommune(place);
       }
     } catch {
       /* ignore */
     }
-  }, [quartier, commune]);
+  }, []);
 
   // Forward geocode search
   const handleSearch = useCallback(async (q) => {
@@ -174,18 +229,12 @@ export default function AddressModal({ isOpen, onClose }) {
   };
 
   // Use current GPS
-  const handleUseGPS = async () => {
-    await detectLocation();
-    const state = useLocationStore.getState();
-    if (state.latitude && state.longitude) {
-      setMapCenter({ lat: state.latitude, lng: state.longitude });
-      if (map.current && marker.current) {
-        map.current.flyTo({ center: [state.longitude, state.latitude], zoom: 16 });
-        marker.current.setLngLat([state.longitude, state.latitude]);
-      }
-      reverseGeocode(state.latitude, state.longitude);
-    }
-  };
+  const handleUseGPS = () => locateAndCenter();
+
+  // Reset auto-locate flag when modal closes
+  useEffect(() => {
+    if (!isOpen) hasAutoLocated.current = false;
+  }, [isOpen]);
 
   // Build the full address string
   const buildAddressString = () => {
@@ -273,10 +322,11 @@ export default function AddressModal({ isOpen, onClose }) {
                 {/* GPS shortcut */}
                 <button
                   onClick={handleUseGPS}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-primary-50 text-primary-600 rounded-xl text-sm font-medium hover:bg-primary-100 transition"
+                  disabled={gpsLoading}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-primary-50 text-primary-600 rounded-xl text-sm font-medium hover:bg-primary-100 transition disabled:opacity-60"
                 >
-                  <FiNavigation size={18} />
-                  <span>Utiliser ma position actuelle</span>
+                  <FiNavigation size={18} className={gpsLoading ? 'animate-pulse' : ''} />
+                  <span>{gpsLoading ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}</span>
                 </button>
 
                 <div className="grid grid-cols-2 gap-3 mt-2">
