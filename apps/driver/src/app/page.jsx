@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '../stores/authStore';
 import useDriverStore from '../stores/driverStore';
@@ -12,11 +12,43 @@ export default function DriverHome() {
   const { user, isAuthenticated, loading: authLoading, loadUser } = useAuthStore();
   const { isOnline, availableOrders, activeDelivery, earnings, toggleOnline, fetchAvailableOrders, fetchEarnings } = useDriverStore();
   const [toggling, setToggling] = useState(false);
+  const gpsWatchRef = useRef(null);
 
   useEffect(() => { loadUser(); }, []);
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace('/auth/login');
   }, [authLoading, isAuthenticated]);
+
+  // GPS continu quand le livreur est en ligne
+  useEffect(() => {
+    if (isOnline && isAuthenticated && 'geolocation' in navigator) {
+      // Envoi initial de la position
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const socket = getSocket();
+        if (socket) socket.emit('driver:location_update', {
+          latitude: pos.coords.latitude, longitude: pos.coords.longitude,
+        });
+      }, null, { enableHighAccuracy: true });
+
+      // Tracking continu toutes les ~10 secondes
+      gpsWatchRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const socket = getSocket();
+          if (socket) socket.emit('driver:location_update', {
+            latitude: pos.coords.latitude, longitude: pos.coords.longitude,
+          });
+        },
+        null,
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+      );
+    }
+    return () => {
+      if (gpsWatchRef.current !== null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+    };
+  }, [isOnline, isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {

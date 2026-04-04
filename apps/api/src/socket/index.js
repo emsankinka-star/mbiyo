@@ -58,8 +58,19 @@ function initializeSocket(httpServer) {
     // ============================
 
     // Mise à jour de la position du livreur
-    socket.on('driver:location_update', (data) => {
+    socket.on('driver:location_update', async (data) => {
       const { latitude, longitude, order_id } = data;
+
+      // Persister la position en DB pour le matching
+      try {
+        const { db } = require('../database');
+        await db('drivers').where('user_id', user.id).update({
+          current_lat: latitude, current_lng: longitude,
+        });
+        await db('users').where('id', user.id).update({ latitude, longitude });
+      } catch (err) {
+        logger.error('Erreur update position livreur:', err.message);
+      }
 
       // Broadcast aux clients qui suivent cette commande
       if (order_id) {
