@@ -50,6 +50,30 @@ export default function AddressModal({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
+  // Reverse geocode coords to fill address fields
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    if (!MAPBOX_TOKEN) return;
+    try {
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=fr&types=address,neighborhood,locality,place`
+      );
+      const data = await res.json();
+      if (data.features?.length > 0) {
+        const feat = data.features[0];
+        const ctx = feat.context || [];
+        const getCtx = (type) => ctx.find((c) => c.id?.startsWith(type))?.text || '';
+
+        // Auto-fill from geocode results (always overwrite with GPS data)
+        const neighborhood = getCtx('neighborhood') || getCtx('locality');
+        const place = getCtx('place');
+        if (neighborhood) setQuartier(neighborhood);
+        if (place) setCommune(place);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // Auto-detect GPS when opening map tab or clicking "use my position"
   const locateAndCenter = useCallback(async () => {
     if (!navigator.geolocation) return;
@@ -161,30 +185,6 @@ export default function AddressModal({ isOpen, onClose }) {
       }
     };
   }, [isOpen, activeTab, locateAndCenter]);
-
-  // Reverse geocode coords to fill address fields
-  const reverseGeocode = useCallback(async (lat, lng) => {
-    if (!MAPBOX_TOKEN) return;
-    try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=fr&types=address,neighborhood,locality,place`
-      );
-      const data = await res.json();
-      if (data.features?.length > 0) {
-        const feat = data.features[0];
-        const ctx = feat.context || [];
-        const getCtx = (type) => ctx.find((c) => c.id?.startsWith(type))?.text || '';
-
-        // Auto-fill from geocode results (always overwrite with GPS data)
-        const neighborhood = getCtx('neighborhood') || getCtx('locality');
-        const place = getCtx('place');
-        if (neighborhood) setQuartier(neighborhood);
-        if (place) setCommune(place);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   // Forward geocode search
   const handleSearch = useCallback(async (q) => {
