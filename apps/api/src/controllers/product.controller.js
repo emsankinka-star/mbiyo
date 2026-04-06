@@ -2,6 +2,7 @@ const { validationResult } = require('express-validator');
 const { db } = require('../database');
 const { apiResponse, paginate } = require('../utils/helpers');
 const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
+const logger = require('../utils/logger');
 
 const VALID_UNITS = ['piece', 'kg', 'g', 'L', 'mL', 'm', 'pack'];
 
@@ -41,6 +42,7 @@ const productController = {
         pagination: { page: parseInt(page), limit: lim, total: parseInt(total.count) },
       });
     } catch (error) {
+      logger.error('Erreur liste produits:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -69,6 +71,7 @@ const productController = {
 
       return apiResponse(res, 200, products);
     } catch (error) {
+      logger.error('Erreur recherche produits:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -87,6 +90,7 @@ const productController = {
       if (!product) return apiResponse(res, 404, null, 'Produit non trouvé');
       return apiResponse(res, 200, product);
     } catch (error) {
+      logger.error('Erreur détail produit:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -107,23 +111,30 @@ const productController = {
       const safeUnit = VALID_UNITS.includes(unit) ? unit : 'piece';
       const defaults = UNIT_DEFAULTS[safeUnit];
 
-      const [product] = await db('products').insert({
+      const insertData = {
         supplier_id: supplier.id,
-        category_id,
         name,
-        description,
+        description: description || null,
         price,
-        promo_price,
+        promo_price: promo_price != null ? promo_price : null,
         stock_quantity: stock_quantity || -1,
         variants: JSON.stringify(variants || []),
         extras: JSON.stringify(extras || []),
         unit: safeUnit,
         min_quantity: min_quantity || defaults.min_quantity,
         step: step || defaults.step,
-      }).returning('*');
+      };
+
+      // Only include category_id if it's a valid value (avoid undefined/empty string for UUID FK)
+      if (category_id) {
+        insertData.category_id = category_id;
+      }
+
+      const [product] = await db('products').insert(insertData).returning('*');
 
       return apiResponse(res, 201, product, 'Produit créé');
     } catch (error) {
+      logger.error('Erreur création produit:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -154,6 +165,7 @@ const productController = {
       const [updated] = await db('products').where('id', req.params.id).update(updates).returning('*');
       return apiResponse(res, 200, updated, 'Produit mis à jour');
     } catch (error) {
+      logger.error('Erreur mise à jour produit:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -168,6 +180,7 @@ const productController = {
       if (!deleted) return apiResponse(res, 404, null, 'Produit non trouvé');
       return apiResponse(res, 200, null, 'Produit supprimé');
     } catch (error) {
+      logger.error('Erreur suppression produit:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -191,6 +204,7 @@ const productController = {
       const [product] = await db('products').where('id', req.params.id).update({ image_url: url }).returning('*');
       return apiResponse(res, 200, product);
     } catch (error) {
+      logger.error('Erreur upload image produit:', error);
       return apiResponse(res, 500, null, 'Erreur upload image');
     }
   },
@@ -208,6 +222,7 @@ const productController = {
         .update({ is_available: !existing.is_available }).returning('*');
       return apiResponse(res, 200, product);
     } catch (error) {
+      logger.error('Erreur toggle disponibilité:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
@@ -225,6 +240,7 @@ const productController = {
       const [product] = await db('products').where('id', req.params.id).update({ stock_quantity }).returning('*');
       return apiResponse(res, 200, product);
     } catch (error) {
+      logger.error('Erreur mise à jour stock:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');
     }
   },
