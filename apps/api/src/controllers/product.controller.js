@@ -163,25 +163,42 @@ const productController = {
       const product = await db('products').where('id', req.params.id).where('supplier_id', supplier.id).first();
       if (!product) return apiResponse(res, 404, null, 'Produit non trouvé');
 
-      const updates = {};
-      const fields = ['name', 'description', 'price', 'promo_price', 'category_id', 'stock_quantity', 'is_available', 'sort_order', 'min_quantity', 'step'];
-      fields.forEach((f) => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+      // Colonnes de base (toujours présentes)
+      const baseFields = ['name', 'description', 'price', 'promo_price', 'category_id', 'stock_quantity', 'is_available'];
+      // Colonnes optionnelles (peuvent ne pas exister en DB)
+      const optionalFields = ['sort_order', 'min_quantity', 'step'];
+
+      const baseUpdates = {};
+      const optionalUpdates = {};
+
+      baseFields.forEach((f) => { if (req.body[f] !== undefined) baseUpdates[f] = req.body[f]; });
+      optionalFields.forEach((f) => { if (req.body[f] !== undefined) optionalUpdates[f] = req.body[f]; });
 
       if (req.body.unit && VALID_UNITS.includes(req.body.unit)) {
-        updates.unit = req.body.unit;
-        // Apply defaults for the new unit if min_quantity/step not explicitly set
-        if (!req.body.min_quantity) updates.min_quantity = UNIT_DEFAULTS[req.body.unit].min_quantity;
-        if (!req.body.step) updates.step = UNIT_DEFAULTS[req.body.unit].step;
+        optionalUpdates.unit = req.body.unit;
+        if (!req.body.min_quantity) optionalUpdates.min_quantity = UNIT_DEFAULTS[req.body.unit].min_quantity;
+        if (!req.body.step) optionalUpdates.step = UNIT_DEFAULTS[req.body.unit].step;
       }
 
-      if (req.body.variants) updates.variants = db.raw('?::jsonb', [JSON.stringify(req.body.variants)]);
-      if (req.body.extras) updates.extras = db.raw('?::jsonb', [JSON.stringify(req.body.extras)]);
+      if (req.body.variants) optionalUpdates.variants = db.raw('?::jsonb', [JSON.stringify(req.body.variants)]);
+      if (req.body.extras) optionalUpdates.extras = db.raw('?::jsonb', [JSON.stringify(req.body.extras)]);
 
-      const [updated] = await db('products').where('id', req.params.id).update(updates).returning('*');
-      return apiResponse(res, 200, updated, 'Produit mis à jour');
+      // Essai avec toutes les colonnes, fallback sans les optionnelles
+      const allUpdates = { ...baseUpdates, ...optionalUpdates };
+      try {
+        const [updated] = await db('products').where('id', req.params.id).update(allUpdates).returning('*');
+        return apiResponse(res, 200, updated, 'Produit mis à jour');
+      } catch (fullErr) {
+        if (fullErr.message && fullErr.message.includes('does not exist') && Object.keys(baseUpdates).length > 0) {
+          logger.warn('Update fallback sans colonnes optionnelles:', fullErr.message);
+          const [updated] = await db('products').where('id', req.params.id).update(baseUpdates).returning('*');
+          return apiResponse(res, 200, updated, 'Produit mis à jour');
+        }
+        throw fullErr;
+      }
     } catch (error) {
-      logger.error('Erreur mise à jour produit:', error);
-      return apiResponse(res, 500, null, 'Erreur serveur');
+      logger.error('Erreur mise à jour produit:', error.message || error);
+      return apiResponse(res, 500, null, error.message || 'Erreur mise à jour produit');
     }
   },
 
