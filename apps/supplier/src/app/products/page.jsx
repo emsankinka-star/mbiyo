@@ -171,16 +171,21 @@ function ProductFormModal({ product, onClose, onSaved }) {
         saved = await createProduct(payload);
       }
 
-      // Upload image separately if selected
+      // Upload image séparément (non-bloquant pour la création)
       if (image && saved?.id) {
-        await uploadProductImage(saved.id, image);
+        try {
+          await uploadProductImage(saved.id, image);
+        } catch (imgErr) {
+          console.error('Erreur upload image:', imgErr);
+          toast.error('Produit créé mais l\'image n\'a pas pu être uploadée');
+        }
       }
 
       toast.success(product ? 'Produit modifié' : 'Produit ajouté');
       onSaved();
     } catch (err) {
       console.error('Erreur produit:', err.response?.data || err.message);
-      toast.error(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
+      toast.error(err.response?.data?.message || err.message || 'Erreur lors de l\'enregistrement');
     } finally { setLoading(false); }
   };
 

@@ -136,8 +136,7 @@ const productController = {
     } catch (error) {
       logger.error('Erreur création produit:', error.message || error);
       logger.error('Stack:', error.stack);
-      const msg = process.env.NODE_ENV !== 'production' ? (error.message || 'Erreur serveur') : 'Erreur serveur';
-      return apiResponse(res, 500, null, msg);
+      return apiResponse(res, 500, null, error.message || 'Erreur lors de la création du produit');
     }
   },
 
@@ -207,7 +206,7 @@ const productController = {
       return apiResponse(res, 200, product);
     } catch (error) {
       logger.error('Erreur upload image produit:', error);
-      return apiResponse(res, 500, null, 'Erreur upload image');
+      return apiResponse(res, 500, null, error.message || 'Erreur upload image');
     }
   },
 
