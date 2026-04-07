@@ -22,17 +22,15 @@ async function start() {
     await initializeDatabase();
     logger.info('✅ Base de données connectée');
 
-    // Exécuter les migrations et seeds (idempotent)
-    if (process.env.RUN_MIGRATIONS === 'true') {
-      try {
-        logger.info('🔄 Exécution des migrations...');
-        await migrate();
-        logger.info('🌱 Exécution des seeds...');
-        await seed();
-        logger.info('✅ Migrations et seeds terminés');
-      } catch (migrationError) {
-        logger.error('⚠️ Erreur migrations (serveur démarre quand même):', migrationError.message);
-      }
+    // Exécuter les migrations et seeds (idempotent — toujours exécuter)
+    try {
+      logger.info('🔄 Exécution des migrations...');
+      await migrate();
+      logger.info('🌱 Exécution des seeds...');
+      await seed();
+      logger.info('✅ Migrations et seeds terminés');
+    } catch (migrationError) {
+      logger.error('⚠️ Erreur migrations (serveur démarre quand même):', migrationError.message);
     }
 
     httpServer.listen(PORT, () => {
