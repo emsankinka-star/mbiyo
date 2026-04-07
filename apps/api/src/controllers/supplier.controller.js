@@ -286,14 +286,19 @@ const supplierController = {
    */
   async toggleOpen(req, res) {
     try {
-      const { is_open } = req.body;
+      // Récupérer l'état actuel et l'inverser
+      const current = await db('suppliers').where('user_id', req.user.id).select('is_open').first();
+      if (!current) return apiResponse(res, 404, null, 'Profil fournisseur non trouvé');
+
+      const newIsOpen = !current.is_open;
       const [supplier] = await db('suppliers')
         .where('user_id', req.user.id)
-        .update({ is_open })
+        .update({ is_open: newIsOpen })
         .returning(['id', 'business_name', 'is_open']);
       return apiResponse(res, 200, supplier);
     } catch (error) {
-      return apiResponse(res, 500, null, 'Erreur serveur');
+      logger.error('Erreur toggleOpen:', error.message);
+      return apiResponse(res, 500, null, error.message || 'Erreur serveur');
     }
   },
 
