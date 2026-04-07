@@ -111,6 +111,7 @@ const productController = {
       const safeUnit = VALID_UNITS.includes(unit) ? unit : 'piece';
       const defaults = UNIT_DEFAULTS[safeUnit];
 
+      // Colonnes de base (toujours présentes)
       const insertData = {
         supplier_id: supplier.id,
         name,
@@ -118,11 +119,6 @@ const productController = {
         price: parseFloat(price),
         promo_price: promo_price != null && promo_price !== '' ? parseFloat(promo_price) : null,
         stock_quantity: stock_quantity != null && stock_quantity !== '' ? parseInt(stock_quantity) : -1,
-        variants: db.raw('?::jsonb', [JSON.stringify(variants || [])]),
-        extras: db.raw('?::jsonb', [JSON.stringify(extras || [])]),
-        unit: safeUnit,
-        min_quantity: min_quantity || defaults.min_quantity,
-        step: step || defaults.step,
       };
 
       // Only include category_id if it's a valid UUID value
@@ -130,9 +126,27 @@ const productController = {
         insertData.category_id = category_id;
       }
 
-      const [product] = await db('products').insert(insertData).returning('*');
+      // Colonnes optionnelles (ajoutées par migration — peuvent ne pas exister)
+      const optionalCols = {};
+      optionalCols.variants = db.raw('?::jsonb', [JSON.stringify(variants || [])]);
+      optionalCols.extras = db.raw('?::jsonb', [JSON.stringify(extras || [])]);
+      optionalCols.unit = safeUnit;
+      optionalCols.min_quantity = min_quantity || defaults.min_quantity;
+      optionalCols.step = step || defaults.step;
 
-      return apiResponse(res, 201, product, 'Produit créé');
+      // Essai 1: avec toutes les colonnes
+      try {
+        const [product] = await db('products').insert({ ...insertData, ...optionalCols }).returning('*');
+        return apiResponse(res, 201, product, 'Produit créé');
+      } catch (fullErr) {
+        // Si une colonne n'existe pas, réessayer sans les colonnes optionnelles
+        if (fullErr.message && fullErr.message.includes('does not exist')) {
+          logger.warn('Colonnes optionnelles manquantes, insertion basique:', fullErr.message);
+          const [product] = await db('products').insert(insertData).returning('*');
+          return apiResponse(res, 201, product, 'Produit créé');
+        }
+        throw fullErr;
+      }
     } catch (error) {
       logger.error('Erreur création produit:', error.message || error);
       logger.error('Stack:', error.stack);
