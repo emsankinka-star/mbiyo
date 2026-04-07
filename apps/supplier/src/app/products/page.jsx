@@ -179,7 +179,8 @@ function ProductFormModal({ product, onClose, onSaved }) {
       toast.success(product ? 'Produit modifié' : 'Produit ajouté');
       onSaved();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur');
+      console.error('Erreur produit:', err.response?.data || err.message);
+      toast.error(err.response?.data?.message || 'Erreur lors de l\'enregistrement');
     } finally { setLoading(false); }
   };
 

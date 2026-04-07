@@ -115,18 +115,18 @@ const productController = {
         supplier_id: supplier.id,
         name,
         description: description || null,
-        price,
-        promo_price: promo_price != null ? promo_price : null,
-        stock_quantity: stock_quantity || -1,
-        variants: JSON.stringify(variants || []),
-        extras: JSON.stringify(extras || []),
+        price: parseFloat(price),
+        promo_price: promo_price != null && promo_price !== '' ? parseFloat(promo_price) : null,
+        stock_quantity: stock_quantity != null && stock_quantity !== '' ? parseInt(stock_quantity) : -1,
+        variants: db.raw('?::jsonb', [JSON.stringify(variants || [])]),
+        extras: db.raw('?::jsonb', [JSON.stringify(extras || [])]),
         unit: safeUnit,
         min_quantity: min_quantity || defaults.min_quantity,
         step: step || defaults.step,
       };
 
-      // Only include category_id if it's a valid value (avoid undefined/empty string for UUID FK)
-      if (category_id) {
+      // Only include category_id if it's a valid UUID value
+      if (category_id && category_id.length > 0) {
         insertData.category_id = category_id;
       }
 
@@ -134,8 +134,10 @@ const productController = {
 
       return apiResponse(res, 201, product, 'Produit créé');
     } catch (error) {
-      logger.error('Erreur création produit:', error);
-      return apiResponse(res, 500, null, 'Erreur serveur');
+      logger.error('Erreur création produit:', error.message || error);
+      logger.error('Stack:', error.stack);
+      const msg = process.env.NODE_ENV !== 'production' ? (error.message || 'Erreur serveur') : 'Erreur serveur';
+      return apiResponse(res, 500, null, msg);
     }
   },
 
@@ -159,8 +161,8 @@ const productController = {
         if (!req.body.step) updates.step = UNIT_DEFAULTS[req.body.unit].step;
       }
 
-      if (req.body.variants) updates.variants = JSON.stringify(req.body.variants);
-      if (req.body.extras) updates.extras = JSON.stringify(req.body.extras);
+      if (req.body.variants) updates.variants = db.raw('?::jsonb', [JSON.stringify(req.body.variants)]);
+      if (req.body.extras) updates.extras = db.raw('?::jsonb', [JSON.stringify(req.body.extras)]);
 
       const [updated] = await db('products').where('id', req.params.id).update(updates).returning('*');
       return apiResponse(res, 200, updated, 'Produit mis à jour');

@@ -326,8 +326,12 @@ async function migrate() {
       const has = await db.schema.hasColumn(tbl, col);
       if (!has) await db.schema.alterTable(tbl, fn);
     };
+    await addColIfMissing('products', 'unit', (t) => t.string('unit').defaultTo('piece'));
+    await addColIfMissing('products', 'variants', (t) => t.jsonb('variants').defaultTo('[]'));
+    await addColIfMissing('products', 'extras', (t) => t.jsonb('extras').defaultTo('[]'));
     await addColIfMissing('products', 'min_quantity', (t) => t.decimal('min_quantity', 10, 3).defaultTo(1));
     await addColIfMissing('products', 'step', (t) => t.decimal('step', 10, 3).defaultTo(1));
+    await addColIfMissing('products', 'sort_order', (t) => t.integer('sort_order').defaultTo(0));
     await addColIfMissing('order_items', 'unit', (t) => t.string('unit').defaultTo('piece'));
     // Change quantity from integer to decimal (safe for existing data)
     await db.raw(`ALTER TABLE order_items ALTER COLUMN quantity TYPE decimal(10,3) USING quantity::decimal(10,3)`);
