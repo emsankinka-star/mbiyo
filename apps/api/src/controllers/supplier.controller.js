@@ -133,26 +133,30 @@ const supplierController = {
       // Vérifier si déjà fournisseur
       const existing = await db('suppliers').where('user_id', req.user.id).first();
       if (existing) {
-        return apiResponse(res, 409, null, 'Vous êtes déjà enregistré comme fournisseur');
+        return apiResponse(res, 409, existing, 'Vous êtes déjà enregistré comme fournisseur');
       }
 
-      // Upload logo si fourni
+      // Upload logo si fourni (graceful - ne bloque pas l'inscription)
       let logo_url = null;
       if (req.file) {
-        const result = await uploadToCloudinary(req.file, 'suppliers/logos', COMPRESS_PRESETS.logo);
-        logo_url = result.url;
+        try {
+          const result = await uploadToCloudinary(req.file, 'suppliers/logos', COMPRESS_PRESETS.logo);
+          logo_url = result.url;
+        } catch (uploadErr) {
+          logger.error('Erreur upload logo (inscription continue sans logo):', uploadErr.message);
+        }
       }
 
-      // Créer le profil fournisseur
+      // Créer le profil fournisseur (uniquement les valeurs définies)
       const insertData = {
         user_id: req.user.id,
         business_name,
         business_type,
-        description,
-        address,
-        latitude,
-        longitude,
       };
+      if (description) insertData.description = description;
+      if (address) insertData.address = address;
+      if (latitude) insertData.latitude = latitude;
+      if (longitude) insertData.longitude = longitude;
       if (rccm) insertData.rccm = rccm;
       if (email) insertData.email = email;
       if (logo_url) insertData.logo_url = logo_url;
@@ -165,8 +169,10 @@ const supplierController = {
       logger.info(`Nouveau fournisseur: ${business_name} (${business_type})`);
       return apiResponse(res, 201, supplier, 'Inscription fournisseur réussie. En attente de validation.');
     } catch (error) {
-      logger.error('Erreur register supplier:', error);
-      return apiResponse(res, 500, null, 'Erreur serveur');
+      logger.error('Erreur register supplier:', error.message || error);
+      logger.error('Stack:', error.stack);
+      const msg = process.env.NODE_ENV !== 'production' ? (error.message || 'Erreur serveur') : 'Erreur serveur';
+      return apiResponse(res, 500, null, msg);
     }
   },
 

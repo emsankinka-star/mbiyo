@@ -17,37 +17,67 @@ const useAuthStore = create((set) => ({
   },
 
   register: async (formData) => {
-    // Step 1: Create user account
     const entries = typeof formData.entries === 'function' ? Object.fromEntries(formData.entries()) : formData;
     const { full_name, owner_name, phone, password, logo, ...supplierData } = entries;
-    const registerRes = await api.post('/auth/register', {
-      full_name: full_name || owner_name,
-      phone,
-      password,
-      role: 'supplier',
-    });
-    const { accessToken, refreshToken } = registerRes.data.data;
+
+    let accessToken, refreshToken, user;
+
+    // Step 1: Create user account (or login if already exists)
+    try {
+      const registerRes = await api.post('/auth/register', {
+        full_name: full_name || owner_name,
+        phone,
+        password,
+        role: 'supplier',
+      });
+      accessToken = registerRes.data.data.accessToken;
+      refreshToken = registerRes.data.data.refreshToken;
+      user = registerRes.data.data.user;
+    } catch (err) {
+      // If 409: user already exists (previous failed attempt) → try login
+      if (err.response?.status === 409) {
+        try {
+          const loginRes = await api.post('/auth/login', { phone, password });
+          accessToken = loginRes.data.data.accessToken;
+          refreshToken = loginRes.data.data.refreshToken;
+          user = loginRes.data.data.user;
+        } catch (loginErr) {
+          throw new Error(loginErr.response?.data?.message || 'Ce numéro existe déjà et le mot de passe est incorrect');
+        }
+      } else {
+        throw err;
+      }
+    }
+
     localStorage.setItem('supplier_token', accessToken);
     localStorage.setItem('supplier_refresh_token', refreshToken);
-    set({ user: registerRes.data.data.user, isAuthenticated: true, loading: false });
+    set({ user, isAuthenticated: true, loading: false });
 
-    // Step 2: Create supplier profile (with optional logo file)
-    const supplierFd = new FormData();
-    supplierFd.append('business_name', supplierData.business_name);
-    supplierFd.append('business_type', supplierData.business_type);
-    if (supplierData.address) supplierFd.append('address', supplierData.address);
-    if (supplierData.description) supplierFd.append('description', supplierData.description);
-    if (supplierData.rccm) supplierFd.append('rccm', supplierData.rccm);
-    if (supplierData.email) supplierFd.append('email', supplierData.email);
-    // Get the original logo file from the original FormData
-    const logoFile = typeof formData.get === 'function' ? formData.get('logo') : null;
-    if (logoFile && logoFile instanceof File) supplierFd.append('logo', logoFile);
+    // Step 2: Create supplier profile (skip if already exists)
+    try {
+      const supplierFd = new FormData();
+      supplierFd.append('business_name', supplierData.business_name);
+      supplierFd.append('business_type', supplierData.business_type);
+      if (supplierData.address) supplierFd.append('address', supplierData.address);
+      if (supplierData.description) supplierFd.append('description', supplierData.description);
+      if (supplierData.rccm) supplierFd.append('rccm', supplierData.rccm);
+      if (supplierData.email) supplierFd.append('email', supplierData.email);
+      const logoFile = typeof formData.get === 'function' ? formData.get('logo') : null;
+      if (logoFile && logoFile instanceof File) supplierFd.append('logo', logoFile);
 
-    const { data } = await api.post('/suppliers/register', supplierFd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    set({ supplier: data.data });
-    return data.data;
+      const { data } = await api.post('/suppliers/register', supplierFd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      set({ supplier: data.data });
+      return data.data;
+    } catch (err) {
+      // 409 = supplier profile already exists → that's OK
+      if (err.response?.status === 409) {
+        set({ supplier: err.response.data.data });
+        return err.response.data.data;
+      }
+      throw err;
+    }
   },
 
   loadUser: async () => {
