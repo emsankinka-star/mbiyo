@@ -9,9 +9,9 @@ const useAuthStore = create((set) => ({
 
   login: async (phone, password) => {
     const { data } = await api.post('/auth/login', { phone, password });
-    // Accepter 'driver' ou 'client' (inscription en cours, profil pas encore créé)
-    if (data.data.user.role !== 'driver' && data.data.user.role !== 'client') {
-      throw new Error('Compte livreur requis');
+    // Seuls les livreurs peuvent se connecter via l'app livreur
+    if (data.data.user.role !== 'driver') {
+      throw new Error('Ce compte n\'est pas un compte livreur. Utilisez l\'application correspondante.');
     }
     localStorage.setItem('driver_token', data.data.accessToken);
     localStorage.setItem('driver_refresh_token', data.data.refreshToken);
@@ -45,8 +45,12 @@ const useAuthStore = create((set) => ({
           accessToken = loginRes.data.data.accessToken;
           refreshToken = loginRes.data.data.refreshToken;
           user = loginRes.data.data.user;
+          // Si le compte existe déjà avec un autre rôle (supplier), bloquer
+          if (user.role !== 'client' && user.role !== 'driver') {
+            throw new Error('Ce numéro est déjà associé à un compte ' + (user.role === 'supplier' ? 'fournisseur' : user.role) + '.');
+          }
         } catch (loginErr) {
-          throw new Error('Ce numéro existe déjà. Vérifiez votre mot de passe ou connectez-vous.');
+          throw loginErr.message ? loginErr : new Error('Ce numéro existe déjà. Vérifiez votre mot de passe ou connectez-vous.');
         }
       } else {
         throw err;

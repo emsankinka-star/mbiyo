@@ -35,6 +35,10 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await api.post('/auth/login', { phone, password });
       const { user, accessToken, refreshToken } = res.data.data;
+      // Seuls les clients peuvent se connecter via l'app client
+      if (user.role !== 'client') {
+        throw new Error('Ce compte n\'est pas un compte client. Utilisez l\'application correspondante.');
+      }
       get().setToken(accessToken, refreshToken);
       set({ user, loading: false });
       return user;
