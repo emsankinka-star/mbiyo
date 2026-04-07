@@ -1,6 +1,6 @@
 const { validationResult } = require('express-validator');
 const { db } = require('../database');
-const { apiResponse, calculateDistance, paginate } = require('../utils/helpers');
+const { apiResponse, calculateDistance, paginate, generateTokens } = require('../utils/helpers');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
@@ -13,18 +13,26 @@ const driverController = {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return apiResponse(res, 400, errors.array());
 
+      // Vérifier si déjà inscrit comme livreur
       const existing = await db('drivers').where('user_id', req.user.id).first();
-      if (existing) return apiResponse(res, 409, null, 'Déjà inscrit comme livreur');
+      if (existing) {
+        return apiResponse(res, 409, existing, 'Déjà inscrit comme livreur');
+      }
 
       const { vehicle_type, license_plate } = req.body;
       const files = req.files || {};
 
-      // Upload des documents vers Cloudinary avec compression
-      const [idDocUrl, licenseUrl, vehicleUrl] = await Promise.all([
-        files.id_document ? uploadToCloudinary(files.id_document[0], 'drivers/documents', COMPRESS_PRESETS.document) : null,
-        files.license ? uploadToCloudinary(files.license[0], 'drivers/licenses', COMPRESS_PRESETS.document) : null,
-        files.vehicle_photo ? uploadToCloudinary(files.vehicle_photo[0], 'drivers/vehicles', COMPRESS_PRESETS.product) : null,
-      ]);
+      // Upload des documents (graceful - ne bloque pas l'inscription)
+      let idDocUrl = null, licenseUrl = null, vehicleUrl = null;
+      try {
+        [idDocUrl, licenseUrl, vehicleUrl] = await Promise.all([
+          files.id_document ? uploadToCloudinary(files.id_document[0], 'drivers/documents', COMPRESS_PRESETS.document) : null,
+          files.license ? uploadToCloudinary(files.license[0], 'drivers/licenses', COMPRESS_PRESETS.document) : null,
+          files.vehicle_photo ? uploadToCloudinary(files.vehicle_photo[0], 'drivers/vehicles', COMPRESS_PRESETS.product) : null,
+        ]);
+      } catch (uploadErr) {
+        logger.error('Erreur upload documents livreur (inscription continue):', uploadErr.message);
+      }
 
       const [driver] = await db('drivers').insert({
         user_id: req.user.id,
@@ -35,10 +43,21 @@ const driverController = {
         vehicle_photo_url: vehicleUrl?.url || null,
       }).returning('*');
 
+      // Mettre à jour le rôle de 'client' vers 'driver'
       await db('users').where('id', req.user.id).update({ role: 'driver' });
 
+      // Générer de nouveaux tokens avec le rôle mis à jour
+      const updatedUser = await db('users').where('id', req.user.id).first();
+      const tokens = generateTokens(updatedUser);
+      await db('users').where('id', req.user.id).update({ refresh_token: tokens.refreshToken });
+
       logger.info(`Nouveau livreur inscrit: ${req.user.phone}`);
-      return apiResponse(res, 201, driver, 'Inscription livreur réussie. En attente de validation.');
+      return apiResponse(res, 201, {
+        driver,
+        user: { id: updatedUser.id, full_name: updatedUser.full_name, phone: updatedUser.phone, role: updatedUser.role },
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      }, 'Inscription livreur réussie. En attente de validation.');
     } catch (error) {
       logger.error('Erreur register driver:', error);
       return apiResponse(res, 500, null, 'Erreur serveur');

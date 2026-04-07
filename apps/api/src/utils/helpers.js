@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 
 /**
  * Générer un numéro de commande unique
@@ -82,6 +83,21 @@ function apiResponse(res, statusCode, data, message = null) {
  * Accepte: 0997123456, 997123456, +243997123456, 243997123456
  * Retourne toujours: +243XXXXXXXXX
  */
+/**
+ * Générer les tokens JWT (access + refresh)
+ * Utilisé par auth, supplier et driver controllers
+ */
+function generateTokens(user) {
+  const payload = { id: user.id, role: user.role, phone: user.phone };
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  });
+  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  });
+  return { accessToken, refreshToken };
+}
+
 function normalizePhone(phone) {
   if (!phone) return phone;
   let cleaned = phone.replace(/[\s\-().]/g, '');
@@ -101,4 +117,5 @@ module.exports = {
   paginate,
   apiResponse,
   normalizePhone,
+  generateTokens,
 };

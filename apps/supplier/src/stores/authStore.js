@@ -25,13 +25,13 @@ const useAuthStore = create((set) => ({
 
     let accessToken, refreshToken, user;
 
-    // Step 1: Create user account (or login if already exists)
+    // Step 1: Créer le compte utilisateur (rôle = 'client' par défaut)
+    // Le rôle sera mis à jour vers 'supplier' dans Step 2
     try {
       const registerRes = await api.post('/auth/register', {
         full_name: full_name || owner_name,
         phone,
         password,
-        role: 'supplier',
       });
       accessToken = registerRes.data.data.accessToken;
       refreshToken = registerRes.data.data.refreshToken;
@@ -70,7 +70,13 @@ const useAuthStore = create((set) => ({
       const { data } = await api.post('/suppliers/register', supplierFd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      set({ supplier: data.data });
+      // Le backend retourne des tokens frais avec role='supplier'
+      if (data.data.accessToken) {
+        localStorage.setItem('supplier_token', data.data.accessToken);
+        localStorage.setItem('supplier_refresh_token', data.data.refreshToken);
+      }
+      if (data.data.user) set({ user: data.data.user });
+      set({ supplier: data.data.supplier || data.data });
       return data.data;
     } catch (err) {
       if (err.response?.status === 409) {

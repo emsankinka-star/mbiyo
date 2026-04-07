@@ -9,7 +9,7 @@ const registerValidation = [
   body('full_name').trim().isLength({ min: 2 }).withMessage('Nom requis (min 2 caractères)'),
   body('phone').trim().matches(/^\+?[0-9]{9,15}$/).withMessage('Numéro de téléphone invalide'),
   body('password').isLength({ min: 6 }).withMessage('Mot de passe min 6 caractères'),
-  body('role').optional().isIn(['client', 'driver', 'supplier']),
+  // Le rôle est ignoré côté serveur — toujours 'client' à l'inscription
 ];
 
 const loginValidation = [

@@ -2,20 +2,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { db } = require('../database');
-const { apiResponse, normalizePhone } = require('../utils/helpers');
+const { apiResponse, normalizePhone, generateTokens } = require('../utils/helpers');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
-function generateTokens(user) {
-  const payload = { id: user.id, role: user.role, phone: user.phone };
-  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
-  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  });
-  return { accessToken, refreshToken };
-}
+// generateTokens est maintenant dans helpers.js (partagé entre auth, supplier, driver)
 
 const authController = {
   /**
@@ -28,8 +19,14 @@ const authController = {
         return apiResponse(res, 400, errors.array(), 'Données invalides');
       }
 
-      const { full_name, email, password, role = 'client' } = req.body;
+      const { full_name, email, password } = req.body;
       const phone = normalizePhone(req.body.phone);
+
+      // IMPORTANT: Tout utilisateur est créé comme 'client'.
+      // Le rôle sera mis à jour vers 'supplier' ou 'driver'
+      // uniquement lors de la création du profil correspondant
+      // (POST /suppliers/register ou POST /drivers/register).
+      const role = 'client';
 
       // Vérifier si l'utilisateur existe
       const existing = await db('users').where('phone', phone).first();

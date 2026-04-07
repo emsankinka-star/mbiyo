@@ -1,6 +1,6 @@
 const { validationResult } = require('express-validator');
 const { db } = require('../database');
-const { apiResponse, paginate, calculateDistance } = require('../utils/helpers');
+const { apiResponse, paginate, calculateDistance, generateTokens } = require('../utils/helpers');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
@@ -185,11 +185,21 @@ const supplierController = {
 
       const [supplier] = await db('suppliers').insert(insertData).returning('*');
 
-      // Mettre à jour le rôle
+      // Mettre à jour le rôle de 'client' vers 'supplier'
       await db('users').where('id', req.user.id).update({ role: 'supplier' });
 
+      // Générer de nouveaux tokens avec le rôle mis à jour
+      const updatedUser = await db('users').where('id', req.user.id).first();
+      const tokens = generateTokens(updatedUser);
+      await db('users').where('id', req.user.id).update({ refresh_token: tokens.refreshToken });
+
       logger.info(`Nouveau fournisseur: ${business_name} (${business_type})`);
-      return apiResponse(res, 201, supplier, 'Inscription fournisseur réussie. En attente de validation.');
+      return apiResponse(res, 201, {
+        supplier,
+        user: { id: updatedUser.id, full_name: updatedUser.full_name, phone: updatedUser.phone, role: updatedUser.role },
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      }, 'Inscription fournisseur réussie. En attente de validation.');
     } catch (error) {
       logger.error('Erreur register supplier:', error.message || error);
       logger.error('Stack:', error.stack);
