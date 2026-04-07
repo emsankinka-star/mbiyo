@@ -322,10 +322,29 @@ async function migrate() {
     // ==========================================
     // ALTER existing tables (idempotent)
     // ==========================================
+    // ==========================================
+    // ALTER existing tables (chaque opération est indépendante)
+    // ==========================================
     const addColIfMissing = async (tbl, col, fn) => {
-      const has = await db.schema.hasColumn(tbl, col);
-      if (!has) await db.schema.alterTable(tbl, fn);
+      try {
+        const has = await db.schema.hasColumn(tbl, col);
+        if (!has) {
+          await db.schema.alterTable(tbl, fn);
+          logger.info(`  + Colonne ${tbl}.${col} ajoutée`);
+        }
+      } catch (err) {
+        logger.error(`  ⚠️ Erreur ajout ${tbl}.${col}:`, err.message);
+      }
     };
+
+    const safeRaw = async (sql, label) => {
+      try {
+        await db.raw(sql);
+      } catch (err) {
+        logger.error(`  ⚠️ ${label || sql}:`, err.message);
+      }
+    };
+
     await addColIfMissing('products', 'unit', (t) => t.string('unit').defaultTo('piece'));
     await addColIfMissing('products', 'variants', (t) => t.jsonb('variants').defaultTo('[]'));
     await addColIfMissing('products', 'extras', (t) => t.jsonb('extras').defaultTo('[]'));
@@ -333,21 +352,22 @@ async function migrate() {
     await addColIfMissing('products', 'step', (t) => t.decimal('step', 10, 3).defaultTo(1));
     await addColIfMissing('products', 'sort_order', (t) => t.integer('sort_order').defaultTo(0));
     await addColIfMissing('order_items', 'unit', (t) => t.string('unit').defaultTo('piece'));
-    // Change quantity from integer to decimal (safe for existing data)
-    await db.raw(`ALTER TABLE order_items ALTER COLUMN quantity TYPE decimal(10,3) USING quantity::decimal(10,3)`);
-    // Set default unit on products that have null
-    await db.raw(`UPDATE products SET unit = 'piece' WHERE unit IS NULL`);
-    await db.raw(`UPDATE products SET min_quantity = 1 WHERE min_quantity IS NULL`);
-    await db.raw(`UPDATE products SET step = 1 WHERE step IS NULL`);
     await addColIfMissing('suppliers', 'address_details', (t) => t.jsonb('address_details').defaultTo('{}'));
     await addColIfMissing('orders', 'delivery_details', (t) => t.jsonb('delivery_details').defaultTo('{}'));
-    // Supplier RCCM + email
     await addColIfMissing('suppliers', 'rccm', (t) => t.string('rccm'));
     await addColIfMissing('suppliers', 'email', (t) => t.string('email'));
+
+    // Change quantity from integer to decimal (safe for existing data)
+    await safeRaw(`ALTER TABLE order_items ALTER COLUMN quantity TYPE decimal(10,3) USING quantity::decimal(10,3)`, 'order_items quantity type');
+    // Set default unit on products that have null
+    await safeRaw(`UPDATE products SET unit = 'piece' WHERE unit IS NULL`, 'products default unit');
+    await safeRaw(`UPDATE products SET min_quantity = 1 WHERE min_quantity IS NULL`, 'products default min_quantity');
+    await safeRaw(`UPDATE products SET step = 1 WHERE step IS NULL`, 'products default step');
+
     // Expand business_type enum (add new values if missing)
     const newTypes = ['bakery','butcher','bar','cafe','hotel','laundry','beauty_salon','gym','electronics','clothing','bookstore','hardware','florist','other'];
     for (const bt of newTypes) {
-      await db.raw(`ALTER TYPE suppliers_business_type ADD VALUE IF NOT EXISTS '${bt}'`).catch(() => {});
+      await safeRaw(`ALTER TYPE suppliers_business_type ADD VALUE IF NOT EXISTS '${bt}'`, `enum ${bt}`);
     }
 
     logger.info('✅ Migration terminée avec succès!');
