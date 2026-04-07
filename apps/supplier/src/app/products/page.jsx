@@ -74,14 +74,18 @@ export default function ProductsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm truncate">{product.name}</h3>
                     <p className="text-green-600 font-bold text-sm">
-                      {(product.price || 0).toLocaleString()} CDF{product.unit && product.unit !== 'piece' ? `/${UNIT_SHORT[product.unit] || product.unit}` : ''}
+                      {Math.round(product.price || 0).toLocaleString()} CDF{product.unit && product.unit !== 'piece' ? `/${UNIT_SHORT[product.unit] || product.unit}` : ''}
                     </p>
                     {product.description && <p className="text-xs text-gray-400 truncate mt-0.5">{product.description}</p>}
                     <div className="flex items-center gap-2 mt-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${product.is_available ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
                         {product.is_available ? 'Disponible' : 'Indisponible'}
                       </span>
-                      {product.stock !== null && <span className="text-xs text-gray-400">Stock: {product.stock}</span>}
+                      {product.stock_quantity != null && (
+                        <span className="text-xs text-gray-400">
+                          Stock: {product.stock_quantity === -1 ? '∞' : product.stock_quantity}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1">
