@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { db } = require('../database');
-const { apiResponse } = require('../utils/helpers');
+const { apiResponse, normalizePhone } = require('../utils/helpers');
 const logger = require('../utils/logger');
 const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('../utils/cloudinary');
 
@@ -28,7 +28,8 @@ const authController = {
         return apiResponse(res, 400, errors.array(), 'Données invalides');
       }
 
-      const { full_name, email, phone, password, role = 'client' } = req.body;
+      const { full_name, email, password, role = 'client' } = req.body;
+      const phone = normalizePhone(req.body.phone);
 
       // Vérifier si l'utilisateur existe
       const existing = await db('users').where('phone', phone).first();
@@ -81,7 +82,8 @@ const authController = {
         return apiResponse(res, 400, errors.array(), 'Données invalides');
       }
 
-      const { phone, email, password } = req.body;
+      const { email, password } = req.body;
+      const phone = normalizePhone(req.body.phone);
 
       if (!phone && !email) {
         return apiResponse(res, 400, null, 'Téléphone ou email requis');

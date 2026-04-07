@@ -13,10 +13,16 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
 
+  const handlePhoneChange = (e) => {
+    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 9);
+    setPhone(val);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (phone.length !== 9) return toast.error('Le numéro doit contenir 9 chiffres');
     try {
-      await login(phone, password);
+      await login('+243' + phone, password);
       toast.success('Connexion réussie!');
       router.push('/');
     } catch (error) {
@@ -44,13 +50,16 @@ export default function LoginPage() {
             <label className="text-sm font-medium text-dark-700 mb-1 block">Téléphone</label>
             <div className="relative">
               <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <span className="absolute left-10 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-700">+243</span>
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+243 9XX XXX XXX"
-                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                onChange={handlePhoneChange}
+                placeholder="9XX XXX XXX"
+                className="w-full pl-[5.5rem] pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
+                maxLength={9}
+                inputMode="numeric"
               />
             </div>
           </div>

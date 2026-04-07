@@ -12,11 +12,17 @@ export default function DriverLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handlePhoneChange = (e) => {
+    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 9);
+    setPhone(val);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (phone.length !== 9) return toast.error('Le numéro doit contenir 9 chiffres');
     setLoading(true);
     try {
-      await login(phone, password);
+      await login('+243' + phone, password);
       toast.success('Connexion réussie !');
       router.replace('/');
     } catch (err) {
@@ -35,7 +41,8 @@ export default function DriverLogin() {
           <label className="text-sm font-medium text-gray-600 mb-1 block">Téléphone</label>
           <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-blue-500">
             <FiPhone className="text-gray-400 mr-3" />
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+243..." className="flex-1 outline-none text-sm" required />
+            <span className="text-sm font-medium text-gray-700 mr-1">+243</span>
+            <input type="tel" value={phone} onChange={handlePhoneChange} placeholder="9XX XXX XXX" className="flex-1 outline-none text-sm" required maxLength={9} inputMode="numeric" />
           </div>
         </div>
         <div>

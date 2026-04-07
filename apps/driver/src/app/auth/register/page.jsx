@@ -15,12 +15,18 @@ export default function DriverRegister() {
 
   const update = (k, v) => setForm({ ...form, [k]: v });
 
+  const handlePhoneChange = (e) => {
+    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 9);
+    update('phone', val);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      if (form.phone.length !== 9) { toast.error('Le numéro doit contenir 9 chiffres'); setLoading(false); return; }
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      Object.entries({ ...form, phone: '+243' + form.phone }).forEach(([k, v]) => fd.append(k, v));
       Object.entries(files).forEach(([k, v]) => { if (v) fd.append(k, v); });
       await register(fd);
       router.replace('/auth/login');
@@ -55,7 +61,8 @@ export default function DriverRegister() {
               <label className="text-sm font-medium text-gray-600 block mb-1">Téléphone</label>
               <div className="flex items-center border border-gray-200 rounded-xl px-3 py-3 focus-within:border-blue-500">
                 <FiPhone className="text-gray-400 mr-3" />
-                <input type="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="+243..." className="flex-1 outline-none text-sm" required />
+                <span className="text-sm font-medium text-gray-700 mr-1">+243</span>
+                <input type="tel" value={form.phone} onChange={handlePhoneChange} placeholder="9XX XXX XXX" className="flex-1 outline-none text-sm" required maxLength={9} inputMode="numeric" />
               </div>
             </div>
             <div>

@@ -77,6 +77,21 @@ function apiResponse(res, statusCode, data, message = null) {
   return res.status(statusCode).json(response);
 }
 
+/**
+ * Normaliser un numéro de téléphone congolais (RDC)
+ * Accepte: 0997123456, 997123456, +243997123456, 243997123456
+ * Retourne toujours: +243XXXXXXXXX
+ */
+function normalizePhone(phone) {
+  if (!phone) return phone;
+  let cleaned = phone.replace(/[\s\-().]/g, '');
+  if (cleaned.startsWith('+243')) return cleaned;
+  if (cleaned.startsWith('243') && cleaned.length >= 12) return '+' + cleaned;
+  if (cleaned.startsWith('0') && cleaned.length === 10) return '+243' + cleaned.slice(1);
+  if (cleaned.length === 9) return '+243' + cleaned;
+  return cleaned.startsWith('+') ? cleaned : '+243' + cleaned;
+}
+
 module.exports = {
   generateOrderNumber,
   calculateDistance,
@@ -85,4 +100,5 @@ module.exports = {
   formatCDF,
   paginate,
   apiResponse,
+  normalizePhone,
 };
