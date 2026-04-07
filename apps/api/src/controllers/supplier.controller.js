@@ -6,6 +6,28 @@ const { uploadToCloudinary, deleteFromCloudinary, COMPRESS_PRESETS } = require('
 
 const supplierController = {
   /**
+   * GET /api/suppliers/me - Profil du fournisseur connecté
+   */
+  async getMyProfile(req, res) {
+    try {
+      const supplier = await db('suppliers')
+        .join('users', 'suppliers.user_id', 'users.id')
+        .select('suppliers.*', 'users.full_name as owner_name', 'users.phone as owner_phone')
+        .where('suppliers.user_id', req.user.id)
+        .first();
+
+      if (!supplier) {
+        return apiResponse(res, 404, null, 'Profil fournisseur non trouvé');
+      }
+
+      return apiResponse(res, 200, supplier);
+    } catch (error) {
+      logger.error('Erreur getMyProfile:', error.message);
+      return apiResponse(res, 500, null, 'Erreur serveur');
+    }
+  },
+
+  /**
    * GET /api/suppliers - Liste des fournisseurs
    */
   async list(req, res) {
@@ -171,8 +193,7 @@ const supplierController = {
     } catch (error) {
       logger.error('Erreur register supplier:', error.message || error);
       logger.error('Stack:', error.stack);
-      const msg = process.env.NODE_ENV !== 'production' ? (error.message || 'Erreur serveur') : 'Erreur serveur';
-      return apiResponse(res, 500, null, msg);
+      return apiResponse(res, 500, null, error.message || 'Erreur lors de la création du profil fournisseur');
     }
   },
 

@@ -7,6 +7,12 @@ const supplierController = require('../controllers/supplier.controller');
 // Routes publiques
 router.get('/', supplierController.list);
 router.get('/nearby', supplierController.nearby);
+
+// Route authentifiée - profil du fournisseur connecté (AVANT /:id)
+router.get('/me', authenticate, supplierController.getMyProfile);
+router.get('/me/stats', authenticate, authorize('supplier'), supplierController.getStats);
+router.get('/me/orders', authenticate, authorize('supplier'), supplierController.getOrders);
+
 router.get('/:id', supplierController.getById);
 router.get('/:id/products', supplierController.getProducts);
 
@@ -26,7 +32,5 @@ router.put('/me/logo', authenticate, authorize('supplier'), upload.single('logo'
 router.put('/me/cover', authenticate, authorize('supplier'), upload.single('cover'), supplierController.uploadCover);
 router.put('/me/status', authenticate, authorize('supplier'), supplierController.toggleOpen);
 router.put('/me/hours', authenticate, authorize('supplier'), supplierController.updateHours);
-router.get('/me/stats', authenticate, authorize('supplier'), supplierController.getStats);
-router.get('/me/orders', authenticate, authorize('supplier'), supplierController.getOrders);
 
 module.exports = router;

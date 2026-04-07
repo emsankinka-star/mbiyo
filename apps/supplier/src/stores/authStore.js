@@ -9,7 +9,10 @@ const useAuthStore = create((set) => ({
 
   login: async (phone, password) => {
     const { data } = await api.post('/auth/login', { phone, password });
-    if (data.data.user.role !== 'supplier') throw new Error('Compte fournisseur requis');
+    // Allow 'client' role during registration flow (user created but supplier profile not yet)
+    if (data.data.user.role !== 'supplier' && data.data.user.role !== 'client') {
+      throw new Error('Compte fournisseur requis');
+    }
     localStorage.setItem('supplier_token', data.data.accessToken);
     localStorage.setItem('supplier_refresh_token', data.data.refreshToken);
     set({ user: data.data.user, isAuthenticated: true, loading: false });
@@ -34,7 +37,6 @@ const useAuthStore = create((set) => ({
       refreshToken = registerRes.data.data.refreshToken;
       user = registerRes.data.data.user;
     } catch (err) {
-      // If 409: user already exists (previous failed attempt) → try login
       if (err.response?.status === 409) {
         try {
           const loginRes = await api.post('/auth/login', { phone, password });
@@ -42,7 +44,7 @@ const useAuthStore = create((set) => ({
           refreshToken = loginRes.data.data.refreshToken;
           user = loginRes.data.data.user;
         } catch (loginErr) {
-          throw new Error(loginErr.response?.data?.message || 'Ce numéro existe déjà et le mot de passe est incorrect');
+          throw new Error('Ce numéro existe déjà. Vérifiez votre mot de passe ou connectez-vous.');
         }
       } else {
         throw err;
@@ -53,30 +55,33 @@ const useAuthStore = create((set) => ({
     localStorage.setItem('supplier_refresh_token', refreshToken);
     set({ user, isAuthenticated: true, loading: false });
 
-    // Step 2: Create supplier profile (skip if already exists)
-    try {
-      const supplierFd = new FormData();
-      supplierFd.append('business_name', supplierData.business_name);
-      supplierFd.append('business_type', supplierData.business_type);
-      if (supplierData.address) supplierFd.append('address', supplierData.address);
-      if (supplierData.description) supplierFd.append('description', supplierData.description);
-      if (supplierData.rccm) supplierFd.append('rccm', supplierData.rccm);
-      if (supplierData.email) supplierFd.append('email', supplierData.email);
-      const logoFile = typeof formData.get === 'function' ? formData.get('logo') : null;
-      if (logoFile && logoFile instanceof File) supplierFd.append('logo', logoFile);
+    // Step 2: Create supplier profile
+    const supplierFd = new FormData();
+    supplierFd.append('business_name', supplierData.business_name);
+    supplierFd.append('business_type', supplierData.business_type);
+    if (supplierData.address) supplierFd.append('address', supplierData.address);
+    if (supplierData.description) supplierFd.append('description', supplierData.description);
+    if (supplierData.rccm) supplierFd.append('rccm', supplierData.rccm);
+    if (supplierData.email) supplierFd.append('email', supplierData.email);
+    const logoFile = typeof formData.get === 'function' ? formData.get('logo') : null;
+    if (logoFile && logoFile instanceof File) supplierFd.append('logo', logoFile);
 
+    try {
       const { data } = await api.post('/suppliers/register', supplierFd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       set({ supplier: data.data });
       return data.data;
     } catch (err) {
-      // 409 = supplier profile already exists → that's OK
       if (err.response?.status === 409) {
+        // Supplier profile already exists - that's fine
         set({ supplier: err.response.data.data });
         return err.response.data.data;
       }
-      throw err;
+      // Profile creation failed but user account exists
+      // Still let them through - they can complete profile later
+      console.error('Supplier profile creation failed:', err.response?.data?.message || err.message);
+      return user;
     }
   },
 
