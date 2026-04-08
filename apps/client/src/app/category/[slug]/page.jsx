@@ -6,14 +6,19 @@ import { FiArrowLeft, FiMapPin, FiStar, FiClock, FiPackage } from 'react-icons/f
 
 // Map URL slugs to business_type values and display labels
 const SLUG_MAP = {
-  restaurants:   { type: 'restaurant',  label: 'Restaurants',   icon: '🍽️' },
-  supermarches:  { type: 'supermarket', label: 'Supermarchés',  icon: '🛒' },
-  pharmacies:    { type: 'pharmacy',    label: 'Pharmacies',    icon: '💊' },
-  carburant:     { type: 'fuel',        label: 'Carburant',     icon: '⛽' },
-  boutiques:     { type: 'shop',        label: 'Boutiques',     icon: '🏪' },
-  boissons:      { type: 'shop',        label: 'Boissons',      icon: '🥤' },
-  boulangeries:  { type: 'shop',        label: 'Boulangeries',  icon: '🍞' },
-  electronique:  { type: 'shop',        label: 'Électronique',  icon: '📱' },
+  restaurants:   { type: 'restaurant',    label: 'Restaurants',    icon: '🍽️' },
+  supermarches:  { type: 'supermarket',   label: 'Supermarchés',   icon: '🛒' },
+  pharmacies:    { type: 'pharmacy',      label: 'Pharmacies',     icon: '💊' },
+  carburant:     { type: 'fuel',          label: 'Stations',       icon: '⛽' },
+  boutiques:     { type: 'shop',          label: 'Boutiques',      icon: '🏪' },
+  boucheries:    { type: 'butcher',       label: 'Boucheries',     icon: '🥩' },
+  boulangeries:  { type: 'bakery',        label: 'Boulangeries',   icon: '🍞' },
+  bars:          { type: 'bar',           label: 'Bars & Cafés',   icon: '🍺' },
+  hotels:        { type: 'hotel',         label: 'Hôtels',         icon: '🏨' },
+  electronique:  { type: 'electronics',   label: 'Électronique',   icon: '📱' },
+  vetements:     { type: 'clothing',      label: 'Vêtements',      icon: '👕' },
+  beaute:        { type: 'beauty_salon',  label: 'Beauté',         icon: '💇' },
+  tous:          { type: null,            label: 'Tous les commerces', icon: '📦' },
 };
 
 export default function CategoryPage() {
@@ -27,11 +32,10 @@ export default function CategoryPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get('/suppliers');
+        const params = meta.type ? { type: meta.type } : {};
+        const res = await api.get('/suppliers', { params });
         const list = res.data?.data || res.data || [];
-        // Filter suppliers by matching business_type
-        const filtered = list.filter(s => s.business_type === meta.type);
-        setSuppliers(filtered);
+        setSuppliers(list);
       } catch { } finally { setLoading(false); }
     };
     load();

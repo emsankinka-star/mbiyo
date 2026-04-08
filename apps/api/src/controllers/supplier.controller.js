@@ -75,8 +75,7 @@ const supplierController = {
           'suppliers.*',
           'users.full_name as owner_name'
         )
-        .where('suppliers.is_validated', true)
-        .where('suppliers.is_open', true);
+        .where('suppliers.is_validated', true);
 
       if (type) query = query.where('suppliers.business_type', type);
 

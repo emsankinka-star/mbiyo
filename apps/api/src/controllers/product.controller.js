@@ -27,7 +27,8 @@ const productController = {
 
       let baseQuery = db('products')
         .join('suppliers', 'products.supplier_id', 'suppliers.id')
-        .where('products.is_available', true);
+        .where('products.is_available', true)
+        .where('suppliers.is_validated', true);
 
       if (supplier_id) baseQuery = baseQuery.where('products.supplier_id', supplier_id);
       if (category_id) baseQuery = baseQuery.where('products.category_id', category_id);
@@ -61,6 +62,7 @@ const productController = {
         .join('suppliers', 'products.supplier_id', 'suppliers.id')
         .select('products.*', 'suppliers.business_name as supplier_name')
         .where('products.is_available', true)
+        .where('suppliers.is_validated', true)
         .where(function () {
           this.where('products.name', 'ilike', `%${q}%`)
             .orWhere('products.description', 'ilike', `%${q}%`);

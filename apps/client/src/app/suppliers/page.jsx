@@ -4,11 +4,34 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { FiArrowLeft, FiMapPin, FiStar, FiSearch, FiClock } from 'react-icons/fi';
 
+const TYPE_LABELS = {
+  restaurant: 'Restaurant', supermarket: 'Supermarché', pharmacy: 'Pharmacie',
+  fuel: 'Station', shop: 'Boutique', bakery: 'Boulangerie', butcher: 'Boucherie',
+  bar: 'Bar', cafe: 'Café', hotel: 'Hôtel', laundry: 'Pressing',
+  beauty_salon: 'Beauté', gym: 'Gym', electronics: 'Électronique',
+  clothing: 'Vêtements', bookstore: 'Librairie', hardware: 'Quincaillerie',
+  florist: 'Fleuriste', other: 'Autre',
+};
+
+const TYPE_FILTERS = [
+  { key: null, label: 'Tous' },
+  { key: 'restaurant', label: '🍽️ Restaurants' },
+  { key: 'supermarket', label: '🛒 Supermarchés' },
+  { key: 'pharmacy', label: '💊 Pharmacies' },
+  { key: 'fuel', label: '⛽ Stations' },
+  { key: 'shop', label: '🏪 Boutiques' },
+  { key: 'butcher', label: '🥩 Boucheries' },
+  { key: 'bakery', label: '🍞 Boulangeries' },
+  { key: 'bar', label: '🍺 Bars' },
+  { key: 'electronics', label: '📱 Électronique' },
+];
+
 export default function SuppliersPage() {
   const router = useRouter();
   const [suppliers, setSuppliers] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [search, setSearch] = useState('');
+  const [activeType, setActiveType] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,16 +43,19 @@ export default function SuppliersPage() {
   }, []);
 
   useEffect(() => {
-    if (!search.trim()) { setFiltered(suppliers); return; }
-    const q = search.toLowerCase();
-    setFiltered(suppliers.filter(s =>
-      s.business_name?.toLowerCase().includes(q) ||
-      s.business_type?.toLowerCase().includes(q) ||
-      s.address?.toLowerCase().includes(q)
-    ));
-  }, [search, suppliers]);
-
-  const typeLabels = { supermarket: 'Supermarché', pharmacy: 'Pharmacie', fuel: 'Station', shop: 'Boutique' };
+    let result = suppliers;
+    if (activeType) {
+      result = result.filter(s => s.business_type === activeType);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(s =>
+        s.business_name?.toLowerCase().includes(q) ||
+        s.address?.toLowerCase().includes(q)
+      );
+    }
+    setFiltered(result);
+  }, [search, activeType, suppliers]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -43,6 +69,18 @@ export default function SuppliersPage() {
           <input value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un fournisseur..."
             className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-sm outline-none" />
+        </div>
+        <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
+          {TYPE_FILTERS.map(f => (
+            <button key={f.key || 'all'} onClick={() => setActiveType(f.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                activeType === f.key
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+              {f.label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -59,7 +97,7 @@ export default function SuppliersPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold truncate">{s.business_name}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{typeLabels[s.business_type] || s.business_type}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{TYPE_LABELS[s.business_type] || s.business_type}</p>
               {s.address && (
                 <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
                   <FiMapPin size={12} /> {s.address}

@@ -7,11 +7,11 @@ const categories = [
   { name: 'Restaurants', slug: 'restaurants', icon: '🍽️', color: 'bg-orange-100' },
   { name: 'Supermarchés', slug: 'supermarches', icon: '🛒', color: 'bg-green-100' },
   { name: 'Pharmacies', slug: 'pharmacies', icon: '💊', color: 'bg-blue-100' },
-  { name: 'Carburant', slug: 'carburant', icon: '⛽', color: 'bg-yellow-100' },
+  { name: 'Stations', slug: 'carburant', icon: '⛽', color: 'bg-yellow-100' },
   { name: 'Boutiques', slug: 'boutiques', icon: '🏪', color: 'bg-purple-100' },
-  { name: 'Boissons', slug: 'boissons', icon: '🥤', color: 'bg-pink-100' },
+  { name: 'Boucheries', slug: 'boucheries', icon: '🥩', color: 'bg-red-100' },
   { name: 'Boulangeries', slug: 'boulangeries', icon: '🍞', color: 'bg-amber-100' },
-  { name: 'Électronique', slug: 'electronique', icon: '📱', color: 'bg-indigo-100' },
+  { name: 'Tout voir', slug: 'tous', icon: '📦', color: 'bg-gray-100' },
 ];
 
 export default function CategoryGrid() {

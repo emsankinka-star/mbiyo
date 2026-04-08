@@ -77,7 +77,11 @@ export default function NearbySuppliers() {
                   {supplier.business_type === 'restaurant' ? '🍽️' :
                     supplier.business_type === 'pharmacy' ? '💊' :
                       supplier.business_type === 'fuel' ? '⛽' :
-                        supplier.business_type === 'supermarket' ? '🛒' : '🏪'}
+                        supplier.business_type === 'supermarket' ? '🛒' :
+                          supplier.business_type === 'butcher' ? '🥩' :
+                            supplier.business_type === 'bakery' ? '🍞' :
+                              supplier.business_type === 'bar' ? '🍺' :
+                                supplier.business_type === 'electronics' ? '📱' : '🏪'}
                 </div>
               )}
             </div>
@@ -89,7 +93,12 @@ export default function NearbySuppliers() {
                   {supplier.business_name}
                 </h3>
                 <p className="text-xs text-gray-500 capitalize mt-0.5">
-                  {supplier.business_type}
+                  {{
+                    restaurant: 'Restaurant', supermarket: 'Supermarché', pharmacy: 'Pharmacie',
+                    fuel: 'Station', shop: 'Boutique', bakery: 'Boulangerie', butcher: 'Boucherie',
+                    bar: 'Bar', cafe: 'Café', hotel: 'Hôtel', electronics: 'Électronique',
+                    clothing: 'Vêtements', beauty_salon: 'Beauté', other: 'Autre',
+                  }[supplier.business_type] || supplier.business_type}
                 </p>
               </div>
 
@@ -110,9 +119,9 @@ export default function NearbySuppliers() {
                 )}
               </div>
 
-              {supplier.is_open === false && (
-                <span className="text-xs text-red-500 font-medium">Fermé</span>
-              )}
+              <span className={`text-xs font-medium ${supplier.is_open ? 'text-green-500' : 'text-red-500'}`}>
+                {supplier.is_open ? 'Ouvert' : 'Fermé'}
+              </span>
             </div>
           </div>
         </Link>
