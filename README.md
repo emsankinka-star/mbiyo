@@ -217,8 +217,9 @@ Toutes les images sont **compressées avec Sharp** avant upload vers **Cloudinar
 | Méthode | Route | Auth | Rôle | Description |
 |---------|-------|------|------|-------------|
 | GET | `/` | Non | — | Liste fournisseurs validés (paginé, filtre type/recherche) |
-| GET | `/nearby` | Non | — | Fournisseurs proches, ouverts et validés (lat/lng/rayon) |
+| GET | `/nearby` | Non | — | Fournisseurs proches et validés, ouverts ET fermés (lat/lng/rayon) |
 | GET | `/me` | Oui | — | Profil du fournisseur connecté |
+| GET | `/me/products` | Oui | supplier | Tous les produits du fournisseur connecté (y compris indisponibles) |
 | GET | `/me/stats` | Oui | supplier | Revenus, commandes, note (période: 7j/30j/1an) |
 | GET | `/me/orders` | Oui | supplier | Commandes du fournisseur (paginé, filtre statut) |
 | GET | `/:id` | Non | — | Détails publics d'un fournisseur |
@@ -234,8 +235,8 @@ Toutes les images sont **compressées avec Sharp** avant upload vers **Cloudinar
 
 | Méthode | Route | Auth | Rôle | Description |
 |---------|-------|------|------|-------------|
-| GET | `/` | Non | — | Liste produits disponibles (paginé, filtre fournisseur/catégorie) |
-| GET | `/search` | Non | — | Recherche par nom/description (ilike) |
+| GET | `/` | Non | — | Liste produits disponibles de fournisseurs **validés** (paginé, filtre fournisseur/catégorie) |
+| GET | `/search` | Non | — | Recherche par nom/description (ilike), uniquement fournisseurs **validés** |
 | GET | `/:id` | Non | — | Détail d'un produit |
 | POST | `/` | Oui | supplier | Créer un produit (mode dual avec fallback) |
 | PUT | `/:id` | Oui | supplier | Modifier un produit (mode dual avec fallback) |
@@ -538,8 +539,13 @@ Chaque produit définit une `min_quantity` (quantité minimale) et un `step` (in
 ### Client (🟠 Orange)
 - Inscription/Connexion par téléphone (+243)
 - Connexion stricte — seuls les comptes `role=client` sont acceptés
-- Parcourir restaurants et fournisseurs à proximité (validés et ouverts)
+- **Catégories sur la page d'accueil** : Restaurants, Supermarchés, Pharmacies, Stations, Boutiques, Boucheries, Boulangeries, Tout voir
+- **Fournisseurs à proximité** avec badge Ouvert (vert) / Fermé (rouge) et distance en km
+- **Page fournisseurs** avec filtres par type (onglets défilants) et recherche textuelle
+- **Filtrage par catégorie** côté serveur (`?type=restaurant`, `?type=bakery`, etc.)
+- Produits visibles **uniquement de fournisseurs validés** (non validé = invisible)
 - Panier multi-produits avec détection multi-fournisseur
+- Recherche produits (par nom/description) — uniquement fournisseurs validés
 - Adresse de livraison détaillée (commune, quartier, avenue, repère) avec carte Mapbox
 - Suivi de commande en temps réel avec GPS du livreur
 - **Chat in-app** avec le livreur (messages temps réel, accusés de lecture)
@@ -561,10 +567,11 @@ Chaque produit définit une `min_quantity` (quantité minimale) et un `step` (in
 - Historique des livraisons (avec noms fournisseur + client)
 
 ### Fournisseur (🟢 Vert)
-- Inscription en 2 étapes : compte + profil de commerce (restaurant, pharmacie, supermarché...)
+- Inscription en 2 étapes : compte + profil de commerce (19 types : restaurant, pharmacy, supermarket, fuel, shop, bakery, butcher, bar, cafe, hotel, laundry, beauty_salon, gym, electronics, clothing, bookstore, hardware, florist, other)
 - Connexion stricte — seuls les comptes `role=supplier` sont acceptés
 - En attente de validation admin (`is_validated = false` par défaut)
 - Peut ajouter des produits avant validation
+- **Dashboard isolé** — chaque fournisseur voit uniquement **ses propres produits** (via `GET /suppliers/me/products`)
 - Adresse du commerce avec carte Mapbox et repère
 - Gestion des produits (CRUD, stock, disponibilité, photos, **unités de mesure**, variantes, extras)
 - Gestion des commandes (accepter/refuser/préparer/prêt)
