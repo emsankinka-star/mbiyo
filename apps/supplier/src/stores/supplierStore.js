@@ -36,12 +36,11 @@ const useSupplierStore = create((set) => ({
     return data.data;
   },
 
-  fetchProducts: async (supplierId) => {
+  fetchProducts: async () => {
     set({ loading: true });
     try {
-      const params = supplierId ? { supplier_id: supplierId } : {};
-      const { data } = await api.get('/products', { params });
-      set({ products: data.data?.products || data.data || [] });
+      const { data } = await api.get('/suppliers/me/products');
+      set({ products: data.data || [] });
     } finally { set({ loading: false }); }
   },
 

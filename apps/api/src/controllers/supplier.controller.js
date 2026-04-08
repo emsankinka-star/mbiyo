@@ -122,7 +122,31 @@ const supplierController = {
   },
 
   /**
-   * GET /api/suppliers/:id/products
+   * GET /api/suppliers/me/products - Produits du fournisseur connecté (tous, y compris indisponibles)
+   */
+  async getMyProducts(req, res) {
+    try {
+      const supplier = await db('suppliers').where('user_id', req.user.id).first();
+      if (!supplier) {
+        return apiResponse(res, 404, null, 'Profil fournisseur non trouvé');
+      }
+
+      const { category_id, search } = req.query;
+      let query = db('products').where('supplier_id', supplier.id);
+
+      if (category_id) query = query.where('category_id', category_id);
+      if (search) query = query.where('name', 'ilike', `%${search}%`);
+
+      const products = await query.orderBy('sort_order', 'asc').orderBy('created_at', 'desc');
+      return apiResponse(res, 200, products);
+    } catch (error) {
+      logger.error('Erreur getMyProducts:', error.message);
+      return apiResponse(res, 500, null, 'Erreur serveur');
+    }
+  },
+
+  /**
+   * GET /api/suppliers/:id/products - Produits publics d'un fournisseur (disponibles uniquement)
    */
   async getProducts(req, res) {
     try {

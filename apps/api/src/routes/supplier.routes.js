@@ -10,6 +10,7 @@ router.get('/nearby', supplierController.nearby);
 
 // Route authentifiée - profil du fournisseur connecté (AVANT /:id)
 router.get('/me', authenticate, supplierController.getMyProfile);
+router.get('/me/products', authenticate, authorize('supplier'), supplierController.getMyProducts);
 router.get('/me/stats', authenticate, authorize('supplier'), supplierController.getStats);
 router.get('/me/orders', authenticate, authorize('supplier'), supplierController.getOrders);
 
